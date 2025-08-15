@@ -12,7 +12,7 @@ import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
 import { H1, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { useAuth } from "@/context/supabase-provider";
+import { useSupabase } from "@/hooks/useSupabase";
 
 const phoneSchema = z.object({
 	phoneNumber: z.string().min(10, "Please enter a valid phone number."),
@@ -25,7 +25,7 @@ const otpSchema = z.object({
 export default function WelcomeScreen() {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
-	const { sendOTP, verifyOTP } = useAuth();
+	const { sendOTP, verifyOTP } = useSupabase();
 	const [showOTP, setShowOTP] = useState(false);
 	const [phoneNumber, setPhoneNumber] = useState("");
 
@@ -84,7 +84,6 @@ export default function WelcomeScreen() {
 							placeholder="Enter your phone number"
 							autoCapitalize="none"
 							autoComplete="tel"
-							maxLength={6}
 							autoCorrect={false}
 							keyboardType="phone-pad"
 							onSubmitEditing={phoneForm.handleSubmit(handlePhoneSubmit)}
@@ -131,9 +130,9 @@ export default function WelcomeScreen() {
 							placeholder="Enter the 6-digit code"
 							autoCapitalize="none"
 							autoCorrect={false}
+							maxLength={6}
 							keyboardType="numeric"
 							onSubmitEditing={otpForm.handleSubmit(handleOTPSubmit)}
-							blurOnSubmit={true}
 							returnKeyType="done"
 							{...field}
 						/>

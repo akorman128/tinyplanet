@@ -9,6 +9,7 @@ import {
 import { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/config/supabase";
+import { SupabaseClient } from "@/lib/supabase-client";
 
 type AuthState = {
 	initialized: boolean;
@@ -33,48 +34,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const [session, setSession] = useState<Session | null>(null);
 
 	const sendOTP = async (phoneNumber: string) => {
-		const { data, error } = await supabase.auth.signInWithOtp({
-			phone: phoneNumber,
-		});
-
-		if (error) {
-			console.error("Error sending OTP:", error);
-			throw error;
-		}
-
-		console.log("OTP sent successfully to:", phoneNumber);
+		await SupabaseClient.sendOTP(phoneNumber);
 	};
 
 	const verifyOTP = async (phoneNumber: string, otp: string) => {
-		const { data, error } = await supabase.auth.verifyOtp({
-			phone: phoneNumber,
-			token: otp,
-			type: "sms",
-		});
-
-		if (error) {
-			console.error("Error verifying OTP:", error);
-			throw error;
-		}
-
+		const { data } = await SupabaseClient.verifyOTP(phoneNumber, otp);
 		if (data.session) {
 			setSession(data.session);
-			console.log("User authenticated:", data.user);
-		} else {
-			console.log("No session returned from OTP verification");
 		}
 	};
 
 	const signOut = async () => {
-		const { error } = await supabase.auth.signOut();
-
-		if (error) {
-			console.error("Error signing out:", error);
-			throw error;
-		} else {
-			setSession(null);
-			console.log("User signed out");
-		}
+		await SupabaseClient.signOut();
+		setSession(null);
 	};
 
 	useEffect(() => {
