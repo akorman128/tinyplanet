@@ -13,16 +13,16 @@ import { supabase } from "@/config/supabase";
 type AuthState = {
 	initialized: boolean;
 	session: Session | null;
-	signUp: (email: string, password: string) => Promise<void>;
-	signIn: (email: string, password: string) => Promise<void>;
+	sendOTP: (phoneNumber: string) => Promise<void>;
+	verifyOTP: (phoneNumber: string, otp: string) => Promise<void>;
 	signOut: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthState>({
 	initialized: false,
 	session: null,
-	signUp: async () => {},
-	signIn: async () => {},
+	sendOTP: async () => {},
+	verifyOTP: async () => {},
 	signOut: async () => {},
 });
 
@@ -32,41 +32,36 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const [initialized, setInitialized] = useState(false);
 	const [session, setSession] = useState<Session | null>(null);
 
-	const signUp = async (email: string, password: string) => {
-		const { data, error } = await supabase.auth.signUp({
-			email,
-			password,
+	const sendOTP = async (phoneNumber: string) => {
+		const { data, error } = await supabase.auth.signInWithOtp({
+			phone: phoneNumber,
 		});
 
 		if (error) {
-			console.error("Error signing up:", error);
-			return;
+			console.error("Error sending OTP:", error);
+			throw error;
 		}
 
-		if (data.session) {
-			setSession(data.session);
-			console.log("User signed up:", data.user);
-		} else {
-			console.log("No user returned from sign up");
-		}
+		console.log("OTP sent successfully to:", phoneNumber);
 	};
 
-	const signIn = async (email: string, password: string) => {
-		const { data, error } = await supabase.auth.signInWithPassword({
-			email,
-			password,
+	const verifyOTP = async (phoneNumber: string, otp: string) => {
+		const { data, error } = await supabase.auth.verifyOtp({
+			phone: phoneNumber,
+			token: otp,
+			type: "sms",
 		});
 
 		if (error) {
-			console.error("Error signing in:", error);
-			return;
+			console.error("Error verifying OTP:", error);
+			throw error;
 		}
 
 		if (data.session) {
 			setSession(data.session);
-			console.log("User signed in:", data.user);
+			console.log("User authenticated:", data.user);
 		} else {
-			console.log("No user returned from sign in");
+			console.log("No session returned from OTP verification");
 		}
 	};
 
@@ -75,8 +70,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 		if (error) {
 			console.error("Error signing out:", error);
-			return;
+			throw error;
 		} else {
+			setSession(null);
 			console.log("User signed out");
 		}
 	};
@@ -98,8 +94,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			value={{
 				initialized,
 				session,
-				signUp,
-				signIn,
+				sendOTP,
+				verifyOTP,
 				signOut,
 			}}
 		>

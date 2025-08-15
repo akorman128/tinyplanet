@@ -11,27 +11,23 @@ import { H1 } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
 
 const formSchema = z.object({
-	email: z.string().email("Please enter a valid email address."),
-	password: z
-		.string()
-		.min(8, "Please enter at least 8 characters.")
-		.max(64, "Please enter fewer than 64 characters."),
+	phoneNumber: z.string().min(10, "Please enter a valid phone number."),
+	otp: z.string().min(6, "Please enter a valid OTP."),
 });
 
 export default function SignIn() {
-	const { signIn } = useAuth();
+	const { sendOTP } = useAuth();
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
-			email: "",
-			password: "",
+			phoneNumber: "",
 		},
 	});
 
 	async function onSubmit(data: z.infer<typeof formSchema>) {
 		try {
-			await signIn(data.email, data.password);
+			await sendOTP(data.phoneNumber);
 
 			form.reset();
 		} catch (error: Error | any) {
@@ -47,29 +43,29 @@ export default function SignIn() {
 					<View className="gap-4">
 						<FormField
 							control={form.control}
-							name="email"
+							name="phoneNumber"
 							render={({ field }) => (
 								<FormInput
-									label="Email"
-									placeholder="Email"
+									label="Phone Number"
+									placeholder="Phone Number"
 									autoCapitalize="none"
-									autoComplete="email"
+									autoComplete="tel"
 									autoCorrect={false}
-									keyboardType="email-address"
+									keyboardType="phone-pad"
 									{...field}
 								/>
 							)}
 						/>
 						<FormField
 							control={form.control}
-							name="password"
+							name="otp"
 							render={({ field }) => (
 								<FormInput
-									label="Password"
-									placeholder="Password"
+									label="OTP"
+									placeholder="OTP"
 									autoCapitalize="none"
 									autoCorrect={false}
-									secureTextEntry
+									keyboardType="numeric"
 									{...field}
 								/>
 							)}
