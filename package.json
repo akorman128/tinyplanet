@@ -10,7 +10,7 @@
     "lint": "expo lint . --fix"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-async-storage/async-storage": "~2.2.0",
     "@supabase/supabase-js": "^2.55.0",
     "expo": "^54.0.0",
     "expo-constants": "~18.0.7",
@@ -19,17 +19,21 @@
     "expo-router": "~6.0.0",
     "expo-splash-screen": "~31.0.8",
     "expo-status-bar": "~3.0.7",
-    "react": "19.1.0",
+    "react": "19.2.0",
     "react-native": "0.81.4",
     "react-native-safe-area-context": "~5.6.0",
-    "react-native-screens": "~4.16.0"
+    "react-native-screens": "~4.16.0",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.10",
+    "babel-plugin-module-resolver": "^5.0.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~10.0.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-babel-module": "^5.3.2",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "typescript": "~5.9.2"
