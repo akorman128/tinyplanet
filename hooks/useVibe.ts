@@ -49,7 +49,7 @@ export const useVibe = () => {
 
   const deleteVibe = async (input: deleteVibeDto): Promise<void> => {
     const { receiverId, giverId } = input;
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("vibes")
       .delete()
       .eq("receiver_id", receiverId)

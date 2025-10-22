@@ -4,7 +4,7 @@ import { AppState } from "react-native";
 import { createClient, processLock } from "@supabase/supabase-js";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { SupabaseContext } from "@/context/supabase-context";
+import { SupabaseContext } from "../context/supabase-context";
 
 interface SupabaseProviderProps {
   children: ReactNode;
@@ -25,7 +25,7 @@ export const SupabaseProvider = ({ children }: SupabaseProviderProps) => {
           lock: processLock,
         },
       }),
-    [supabaseUrl, supabaseKey],
+    [supabaseUrl, supabaseKey]
   );
 
   useEffect(() => {

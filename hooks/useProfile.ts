@@ -10,6 +10,7 @@ export const useProfile = () => {
 
   interface getProfileDto {
     userId: string;
+    withVibe?: boolean;
   }
 
   interface getProfileOutputDto {
