@@ -53,7 +53,7 @@ export const useInviteCodes = () => {
 
   interface createInviteCodeDto {
     inviteCode: string;
-    expires_in_days: number;
+    expires_at: Date;
   }
 
   interface createInviteCodeOutputDto {
@@ -63,11 +63,7 @@ export const useInviteCodes = () => {
   const createInviteCode = async (
     input: createInviteCodeDto
   ): Promise<createInviteCodeOutputDto> => {
-    const { inviteCode, expires_in_days } = input;
-
-    const expires_at = expires_in_days
-      ? new Date(Date.now() + expires_in_days * 24 * 60 * 60 * 1000) // convert days to milliseconds
-      : null;
+    const { inviteCode, expires_at } = input;
 
     const { data, error } = await supabase
       .from("invite_codes")
@@ -96,6 +92,7 @@ export const useInviteCodes = () => {
   interface updateInviteCodeDto {
     inviteCodeId: string;
     status: InviteCodeStatus;
+    redeemed_at?: Date;
   }
 
   interface updateInviteCodeOutputDto {
@@ -166,16 +163,10 @@ export const useInviteCodes = () => {
     await updateInviteCode({
       inviteCodeId: inviteCode.id,
       status: InviteCodeStatus.REDEEMED,
+      redeemed_at: new Date(),
     });
 
     return true;
-
-    // const { data, error } = await supabase
-    //   .from("invite_codes")
-    //   .update({ status: InviteCodeStatus.REDEEMED })
-    //   .eq("id", inviteCodeId)
-    //   .select()
-    //   .single();
   };
 
   return {
