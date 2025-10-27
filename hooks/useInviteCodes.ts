@@ -52,7 +52,7 @@ export const useInviteCodes = () => {
   };
 
   interface createInviteCodeDto {
-    inviteCode: string;
+    code: string;
     expires_at: Date;
   }
 
@@ -63,13 +63,17 @@ export const useInviteCodes = () => {
   const createInviteCode = async (
     input: createInviteCodeDto
   ): Promise<createInviteCodeOutputDto> => {
-    const { inviteCode, expires_at } = input;
+    const { code, expires_at } = input;
+
+    if (!profileState?.id) {
+      throw new Error("User must be authenticated to create invite codes");
+    }
 
     const { data, error } = await supabase
       .from("invite_codes")
       .insert({
-        code: inviteCode,
-        inviter_id: profileState!.id,
+        code,
+        inviter_id: profileState.id,
         status: "active",
         expires_at,
       })
@@ -86,13 +90,13 @@ export const useInviteCodes = () => {
       throw error;
     }
 
-    return data;
+    return { data };
   };
 
   interface updateInviteCodeDto {
     inviteCodeId: string;
     status: InviteCodeStatus;
-    redeemed_at?: Date;
+    redeemed_at?: string;
   }
 
   interface updateInviteCodeOutputDto {
@@ -102,11 +106,20 @@ export const useInviteCodes = () => {
   const updateInviteCode = async (
     input: updateInviteCodeDto
   ): Promise<updateInviteCodeOutputDto> => {
-    const { inviteCodeId, status } = input;
+    const { inviteCodeId, status, redeemed_at } = input;
+
+    const updateData: {
+      status: InviteCodeStatus;
+      redeemed_at?: string;
+    } = { status };
+
+    if (redeemed_at) {
+      updateData.redeemed_at = redeemed_at;
+    }
 
     const { data, error } = await supabase
       .from("invite_codes")
-      .update({ status: status })
+      .update(updateData)
       .eq("id", inviteCodeId)
       .eq("status", "active")
       .select()
@@ -115,15 +128,11 @@ export const useInviteCodes = () => {
     if (error) throw error;
     if (!data) throw new Error("Code not found or already used");
 
-    return data;
+    return { data };
   };
 
   interface redeemInviteCodeDto {
     code: string;
-  }
-
-  interface redeemInviteCodeOutputDto {
-    data: InviteCode;
   }
 
   const redeemInviteCode = async (
@@ -135,21 +144,11 @@ export const useInviteCodes = () => {
       filters: { code: code, status: InviteCodeStatus.ACTIVE },
     });
 
-    if (!data) throw new Error("Code not found or already used");
+    if (!data || data.length === 0) {
+      throw new Error("Code not found or already used");
+    }
 
     const inviteCode = data[0];
-
-    switch (inviteCode.status) {
-      case InviteCodeStatus.ACTIVE:
-        break;
-      case InviteCodeStatus.REDEEMED:
-        throw new Error("Code has already been redeemed");
-
-      case InviteCodeStatus.EXPIRED:
-        throw new Error("Code has expired");
-      case InviteCodeStatus.CANCELLED:
-        throw new Error("Code has been cancelled");
-    }
 
     if (inviteCode.expires_at && new Date(inviteCode.expires_at) < new Date()) {
       await updateInviteCode({
@@ -163,7 +162,7 @@ export const useInviteCodes = () => {
     await updateInviteCode({
       inviteCodeId: inviteCode.id,
       status: InviteCodeStatus.REDEEMED,
-      redeemed_at: new Date(),
+      redeemed_at: new Date().toISOString(),
     });
 
     return true;
