@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Profile } from "../types/profile";
 import { useProfileStore } from "../stores/profileStore";
 import { useSupabase } from "./useSupabase";
@@ -8,69 +9,99 @@ export const useProfile = () => {
 
   // ––– QUERIES –––
 
-  interface getProfileDto {
+  interface GetProfileDto {
     userId: string;
-    withVibe?: boolean;
   }
 
-  interface getProfileOutputDto {
-    data: Profile;
-  }
+  const getProfile = useCallback(
+    async (input: GetProfileDto): Promise<Profile> => {
+      const { userId } = input;
 
-  const getProfile = async (
-    input: getProfileDto
-  ): Promise<getProfileOutputDto> => {
-    const { userId } = input;
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    if (error) throw error;
-    return { data };
-  };
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
 
-  interface updateProfileDto {
+        if (error) {
+          throw new Error(
+            `Failed to fetch profile for user ${userId}: ${error.message}`
+          );
+        }
+
+        return data;
+      } catch (error) {
+        throw new Error(
+          `Error in getProfile: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
+    },
+    [supabase]
+  );
+
+  interface UpdateProfileDto {
     updateData: Partial<Profile>;
   }
 
-  interface updateProfileOutputDto {
-    data: Partial<Profile>;
-  }
+  const updateProfile = useCallback(
+    async (input: UpdateProfileDto): Promise<Profile> => {
+      const { updateData } = input;
 
-  const updateProfile = async (
-    input: updateProfileDto
-  ): Promise<updateProfileOutputDto> => {
-    const { updateData } = input;
+      if (!profileState) {
+        throw new Error("Profile not loaded. Cannot update profile.");
+      }
 
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
+      // Store previous state for rollback
+      const previousState = profileState;
 
-    //`POINT(${longitude} ${latitude})`;
+      // Optimistically update local state
+      const optimisticProfile = {
+        ...profileState,
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      };
 
-    const updatedProfile = {
-      ...profileState,
-      ...updateData,
-      updated_at: new Date().toISOString(),
-    };
+      setProfileState(optimisticProfile);
 
-    setProfileState(updatedProfile);
+      try {
+        // Only send changed fields plus updated_at to the database
+        const updatePayload = {
+          ...updateData,
+          updated_at: new Date().toISOString(),
+        };
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(updatedProfile)
-      .eq("id", profileState!.id)
-      .select()
-      .single();
+        const { data, error } = await supabase
+          .from("profiles")
+          .update(updatePayload)
+          .eq("id", profileState.id)
+          .select()
+          .single();
 
-    if (error) throw error;
+        if (error) {
+          // Rollback on error
+          setProfileState(previousState);
+          throw new Error(`Failed to update profile: ${error.message}`);
+        }
 
-    return { data };
-  };
+        // Update with server response to ensure consistency
+        setProfileState(data);
+
+        return data;
+      } catch (error) {
+        // Rollback on error
+        setProfileState(previousState);
+        throw new Error(
+          `Error in updateProfile: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
+    },
+    [supabase, profileState, setProfileState]
+  );
 
   return {
     isLoaded,
+    profileState,
     getProfile,
     updateProfile,
   };

@@ -22,7 +22,7 @@ export const useSignIn = () => {
     });
     if (error) throw error;
 
-    const { data: user } = await getProfile({ userId: data.user.id });
+    const user = await getProfile({ userId: data.user.id });
 
     // GET USER
     setProfileState({

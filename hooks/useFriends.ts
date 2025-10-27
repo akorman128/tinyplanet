@@ -1,22 +1,70 @@
 import { useProfileStore } from "../stores/profileStore";
 import { useSupabase } from "./useSupabase";
+import {
+  GetFriendIdsInput,
+  GetFriendsOutput,
+  GetFriendsOfFriendsOutput,
+  GetMutualsInput,
+  GetMutualsOutput,
+  SendFriendRequestInput,
+  SendFriendRequestOutput,
+  AcceptFriendRequestInput,
+  AcceptFriendRequestOutput,
+  DeclineFriendRequestInput,
+  UnfriendInput,
+  FriendshipWithProfiles,
+  Friend,
+  FriendshipStatus,
+} from "../types/friendship";
 
 export const useFriends = () => {
   const { isLoaded, supabase } = useSupabase();
   const { profileState } = useProfileStore();
 
+  //––––– HELPERS –––––
+
+  /**
+   * Orders two user IDs consistently (alphabetically) to ensure
+   * the same user_a and user_b regardless of operation direction.
+   * This maintains the invariant that user_a < user_b in the friendships table.
+   */
+  const orderUserIds = (userId1: string, userId2: string): [string, string] => {
+    return userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+  };
+
+  /**
+   * Validates a friend request to ensure it's not self-friending
+   */
+  const validateFriendRequest = (
+    currentUserId: string,
+    targetUserId: string
+  ): void => {
+    if (currentUserId === targetUserId) {
+      throw new Error("Cannot send friend request to yourself");
+    }
+  };
+
+  /**
+   * Friendship status constants for type-safe status checks
+   */
+  const FRIENDSHIP_STATUS = {
+    PENDING: FriendshipStatus.PENDING,
+    ACCEPTED: FriendshipStatus.ACCEPTED,
+    DECLINED: FriendshipStatus.DECLINED,
+  } as const;
+
   // ––– QUERIES –––
 
-  interface getFriendIdsDto {
-    targetUserId: string;
-  }
+  const getFriendIds = async (input: GetFriendIdsInput): Promise<string[]> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
 
-  const getFriendIds = async (input: getFriendIdsDto): Promise<string[]> => {
     const { targetUserId } = input;
     const { data, error } = await supabase
       .from("friendships")
       .select("user_a, user_b")
-      .eq("status", "accepted")
+      .eq("status", FRIENDSHIP_STATUS.ACCEPTED)
       .or(`user_a.eq.${targetUserId},user_b.eq.${targetUserId}`);
 
     if (error) throw error;
@@ -26,12 +74,16 @@ export const useFriends = () => {
     );
   };
 
-  interface getFriendsOutputDto {
-    data: any;
-  }
+  const getFriends = async (): Promise<GetFriendsOutput> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
 
-  const getFriends = async (): Promise<getFriendsOutputDto> => {
-    const userId = profileState!.id;
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
+
+    const userId = profileState.id;
 
     const { data, error } = await supabase
       .from("friendships")
@@ -46,73 +98,78 @@ export const useFriends = () => {
         `
       )
       .or(`user_a.eq.${userId},user_b.eq.${userId}`)
-      .eq("status", "accepted");
+      .eq("status", FRIENDSHIP_STATUS.ACCEPTED);
 
     if (error) throw error;
 
-    const friends = (data ?? [])
+    const friends = ((data as unknown as FriendshipWithProfiles[]) ?? [])
       .map((row) => (row.user_a === userId ? row.b : row.a))
-      .filter(Boolean);
+      .filter((friend): friend is Friend => friend !== null);
 
     return { data: friends };
   };
 
-  interface getFriendsOfFriendsOutputDto {
-    data: any;
-  }
+  const getFriendsOfFriends = async (): Promise<GetFriendsOfFriendsOutput> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
 
-  const getFriendsOfFriends =
-    async (): Promise<getFriendsOfFriendsOutputDto> => {
-      // Step 1: get my direct friends
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
 
-      const userId = profileState?.id;
+    const userId = profileState.id;
 
-      const { data, error } = await supabase
-        .from("friends_of_friends_profiles_v")
-        .select("id, full_name, avatar_url, website") // any profile fields you need
-        .eq("user_id", userId);
+    const { data, error } = await supabase
+      .from("friends_of_friends_profiles_v")
+      .select("id, full_name, avatar_url, website")
+      .eq("user_id", userId);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      return { data };
-    };
-
-  interface getMutualsDto {
-    targetUserId: string;
-  }
-
-  interface getMutualsOutputDto {
-    data: any;
-  }
+    return { data: (data as Friend[]) ?? [] };
+  };
 
   const getMutuals = async (
-    input: getMutualsDto
-  ): Promise<getMutualsOutputDto> => {
-    const myFriendIds = await getFriendIds({ targetUserId: profileState!.id });
-    const targetFriendIds = await getFriendIds({
-      targetUserId: input.targetUserId,
-    });
+    input: GetMutualsInput
+  ): Promise<GetMutualsOutput> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
+
+    // Get my friend IDs and target's friend IDs in parallel
+    const [myFriendIds, targetFriendIds] = await Promise.all([
+      getFriendIds({ targetUserId: profileState.id }),
+      getFriendIds({ targetUserId: input.targetUserId }),
+    ]);
+
     const mutuals = myFriendIds.filter((id) => targetFriendIds.includes(id));
     return { data: mutuals };
   };
 
   //––––– MUTATIONS –––––
 
-  interface sendFriendRequestDto {
-    targetUserId: string;
-  }
-
-  interface sendFriendRequestOutputDto {
-    data: any;
-  }
-
   const sendFriendRequest = async (
-    input: sendFriendRequestDto
-  ): Promise<sendFriendRequestOutputDto> => {
+    input: SendFriendRequestInput
+  ): Promise<SendFriendRequestOutput> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
+
     const { targetUserId } = input;
-    const userId = profileState!.id;
-    const [user_a, user_b] =
-      userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
+    const userId = profileState.id;
+
+    validateFriendRequest(userId, targetUserId);
+
+    const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
     const { data, error } = await supabase
       .from("friendships")
@@ -120,87 +177,92 @@ export const useFriends = () => {
         user_a,
         user_b,
         requested_by: userId,
-        status: "pending",
+        status: FRIENDSHIP_STATUS.PENDING,
         accepted_at: null,
       })
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return { data };
   };
 
-  interface acceptFriendRequestDto {
-    fromUserId: string;
-  }
-
-  interface acceptFriendRequestOutputDto {
-    data: any;
-  }
-
   const acceptFriendRequest = async (
-    input: acceptFriendRequestDto
-  ): Promise<acceptFriendRequestOutputDto> => {
+    input: AcceptFriendRequestInput
+  ): Promise<AcceptFriendRequestOutput> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
+
     const { fromUserId } = input;
-    const userId = profileState!.id;
-    const [user_a, user_b] =
-      userId < fromUserId ? [userId, fromUserId] : [fromUserId, userId];
+    const userId = profileState.id;
+    const [user_a, user_b] = orderUserIds(userId, fromUserId);
 
     const { data, error } = await supabase
       .from("friendships")
       .update({
-        status: "accepted",
+        status: FRIENDSHIP_STATUS.ACCEPTED,
         accepted_at: new Date().toISOString(),
       })
       .eq("user_a", user_a)
       .eq("user_b", user_b)
-      .eq("status", "pending")
+      .eq("status", FRIENDSHIP_STATUS.PENDING)
       .neq("requested_by", userId)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return { data };
   };
 
-  interface declineFriendRequestDto {
-    targetUserId: string;
-  }
-
   const declineFriendRequest = async (
-    input: declineFriendRequestDto
+    input: DeclineFriendRequestInput
   ): Promise<void> => {
-    const userId = profileState!.id;
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
+
+    const userId = profileState.id;
     const { targetUserId } = input;
-    const [user_a, user_b] =
-      userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
+    const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
     const { error } = await supabase
       .from("friendships")
-      .update({ status: "declined", accepted_at: null })
+      .update({ status: FRIENDSHIP_STATUS.DECLINED, accepted_at: null })
       .eq("user_a", user_a)
       .eq("user_b", user_b)
-      .eq("status", "pending");
+      .eq("status", FRIENDSHIP_STATUS.PENDING);
 
     if (error) throw error;
   };
 
-  interface unfriendDto {
-    targetUserId: string;
-  }
+  const unfriend = async (input: UnfriendInput): Promise<void> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
 
-  const unfriend = async (input: unfriendDto) => {
-    const userId = profileState!.id;
+    if (!profileState) {
+      throw new Error("Profile not loaded");
+    }
+
+    const userId = profileState.id;
     const { targetUserId } = input;
-    const [user_a, user_b] =
-      userId < targetUserId ? [userId, targetUserId] : [targetUserId, userId];
+    const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
     const { error } = await supabase
       .from("friendships")
       .delete()
       .eq("user_a", user_a)
       .eq("user_b", user_b)
-      .eq("status", "accepted");
+      .eq("status", FRIENDSHIP_STATUS.ACCEPTED);
 
     if (error) throw error;
   };
