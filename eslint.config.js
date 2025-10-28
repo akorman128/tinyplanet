@@ -11,11 +11,11 @@ module.exports = defineConfig([
   {
     settings: {
       "import/resolver": {
-        typescript: {
-          alwaysTryTypes: true,
-        },
-        node: {
-          extensions: [".js", ".jsx", ".ts", ".tsx"],
+        typescript: true,
+        "babel-module": {
+          alias: {
+            "@": "./",
+          },
         },
       },
     },

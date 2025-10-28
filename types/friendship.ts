@@ -1,5 +1,3 @@
-import { Profile } from "./profile";
-
 export enum FriendshipStatus {
   PENDING = "pending",
   ACCEPTED = "accepted",

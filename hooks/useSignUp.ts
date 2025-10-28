@@ -1,5 +1,5 @@
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
+import { useProfileStore } from "@/stores/profileStore";
 
 interface signUpWithPhoneNumberDto {
   phone: string;
@@ -14,7 +14,7 @@ export const useSignUp = () => {
   const { isLoaded, supabase } = useSupabase();
   const { setProfileState } = useProfileStore();
 
-  const signUp = async ({
+  const signUpWithEmail = async ({
     email,
     password,
   }: {
@@ -28,7 +28,7 @@ export const useSignUp = () => {
     if (error) throw error;
   };
 
-  const verifyOtp = async ({
+  const verifyOtpWithEmail = async ({
     email,
     token,
   }: {
@@ -90,8 +90,8 @@ export const useSignUp = () => {
 
   return {
     isLoaded,
-    signUp,
-    verifyOtp,
+    signUpWithEmail,
+    verifyOtpWithEmail,
     signUpWithPhoneNumber,
     verifyOtpAndCreateProfile,
   };

@@ -1,5 +1,5 @@
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
+import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "./useProfile";
 
 interface signInWithPhoneNumberDto {
