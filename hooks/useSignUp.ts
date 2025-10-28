@@ -1,6 +1,5 @@
 import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "../stores/profileStore";
-import { useProfile } from "./useProfile";
 
 interface signUpWithPhoneNumberDto {
   phone: string;
@@ -13,7 +12,6 @@ interface verifyOtpForSignUpDto {
 
 export const useSignUp = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { getProfile } = useProfile();
   const { setProfileState } = useProfileStore();
 
   const signUp = async ({
