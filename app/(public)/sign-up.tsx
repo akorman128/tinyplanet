@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { useSignUp } from "@/hooks/useSignUp";
 
 export default function Page() {
-  const { isLoaded, signUp, verifyOtp } = useSignUp();
+  const { isLoaded, signUpWithEmail, verifyOtpWithEmail } = useSignUp();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +17,7 @@ export default function Page() {
     if (!isLoaded) return;
 
     try {
-      await signUp({
+      await signUpWithEmail({
         email,
         password,
       });
@@ -31,7 +31,7 @@ export default function Page() {
     if (!isLoaded) return;
 
     try {
-      await verifyOtp({
+      await verifyOtpWithEmail({
         email,
         token,
       });
