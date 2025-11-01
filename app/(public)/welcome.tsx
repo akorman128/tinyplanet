@@ -10,7 +10,7 @@ export default function Page() {
         <View className="items-center mb-12">
           <Heading className="mb-2">Welcome</Heading>
           <Subheading className="text-center">
-            Get started with your account
+            Your planet is waiting for you
           </Subheading>
         </View>
 
@@ -24,7 +24,7 @@ export default function Page() {
             className="shadow-lg"
             onPress={() => router.push("/sign-up")}
           >
-            Sign Up
+            Join
           </Button>
 
           <Button variant="secondary" onPress={() => router.push("/sign-in")}>

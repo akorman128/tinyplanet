@@ -6,17 +6,14 @@ export default function PublicLayout() {
       <Stack.Screen
         name="welcome"
         options={{
-          title: "Welcome",
+          title: "Tiny Planet",
           headerTransparent: true,
         }}
       />
       <Stack.Screen
         name="sign-up"
         options={{
-          title: "Sign Up",
-          headerTransparent: true,
-          headerLargeTitle: true,
-          headerBackButtonDisplayMode: "minimal",
+          headerShown: false, // Handled by sign-up/_layout.tsx
         }}
       />
       <Stack.Screen
