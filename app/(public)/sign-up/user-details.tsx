@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { View, SafeAreaView, TouchableOpacity, Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,8 +57,8 @@ export default function UserDetailsPage() {
       hometown: data.hometown.trim(),
     });
 
-    // TODO: Navigate to next screen when implemented
-    console.log("User details saved to store. Ready for next screen.");
+    // Navigate to next screen
+    router.push("/sign-up/phone-number");
   };
 
   const handleDateChange = (_: any, selectedDate?: Date) => {

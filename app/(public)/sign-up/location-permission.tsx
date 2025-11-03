@@ -107,8 +107,8 @@ export default function LocationPermissionPage() {
         <View className="flex-1 items-center justify-center px-6 gap-4">
           <Heading className="text-center">Location Access Required</Heading>
           <Body className="text-center text-gray-600">
-            Access to your location is required to use this app. Please enable
-            location permissions in your device settings.
+            Access to your location is required to use this Tiny Planet. How tf
+            are we supposed to find your ass?
           </Body>
           <Button variant="primary" onPress={handleRetryLocation}>
             Retry

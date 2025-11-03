@@ -1,5 +1,6 @@
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "@/stores/profileStore";
+import { useSignupStore } from "@/stores/signupStore";
+import { useProfile } from "./useProfile";
 
 interface signUpWithPhoneNumberDto {
   phone: string;
@@ -12,7 +13,8 @@ interface verifyOtpForSignUpDto {
 
 export const useSignUp = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { setProfileState } = useProfileStore();
+  const { createProfile } = useProfile();
+  const { signupData, clearSignupData } = useSignupStore();
 
   const signUpWithEmail = async ({
     email,
@@ -49,6 +51,10 @@ export const useSignUp = () => {
     const { phone } = input;
     const { error } = await supabase.auth.signInWithOtp({
       phone,
+      options: {
+        shouldCreateUser: true,
+        channel: "sms",
+      },
     });
 
     if (error) throw error;
@@ -65,27 +71,21 @@ export const useSignUp = () => {
     });
     if (error) throw error;
 
-    if (!data?.user) throw new Error("User not found");
+    if (!data.user) throw new Error("User not found");
 
-    // Create new profile for the user
-    const { data: newProfile, error: profileError } = await supabase
-      .from("profiles")
-      .insert({
-        id: data.user.id,
-        phone_number: phone,
-        full_name: "",
-        avatar_url: "",
-        website: "",
-        hometown: "",
-        birthday: "",
-        location: "",
-      })
-      .select()
-      .single();
+    // Create new profile for the user using signup store data
+    await createProfile({
+      id: data.user.id,
+      phone_number: phone,
+      full_name: signupData.fullName,
+      hometown: signupData.hometown,
+      birthday: signupData.birthday,
+      location: signupData.location,
+      inviter_id: signupData.inviterId,
+    });
 
-    if (profileError) throw profileError;
-
-    setProfileState(newProfile);
+    // Clear signup data after successful profile creation
+    clearSignupData();
   };
 
   return {

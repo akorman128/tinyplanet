@@ -35,22 +35,25 @@ export default function InviteCodePage() {
   const onSubmit = async (data: InviteCodeForm) => {
     const code = data.inviteCode.trim();
 
-    // const inviteCodes = await getInviteCodes({
-    //   filters: {
-    //     code: code,
-    //   },
-    // });
+    const inviteCodes = await getInviteCodes({
+      filters: {
+        code: code,
+      },
+    });
 
-    // if (inviteCodes.data.length === 0) {
-    //   setError("inviteCode", {
-    //     type: "manual",
-    //     message: "Invite code not found",
-    //   });
-    //   return;
-    // }
+    if (inviteCodes.data.length === 0) {
+      setError("inviteCode", {
+        type: "manual",
+        message: "Invite code not found",
+      });
+      return;
+    }
 
     // Save to store
-    setSignupData({ inviteCode: code });
+    setSignupData({
+      inviteCode: code,
+      inviterId: inviteCodes.data[0].inviter_id,
+    });
 
     // Navigate to next screen
     router.push("/sign-up/location-permission");

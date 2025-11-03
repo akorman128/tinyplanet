@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface SignupData {
   inviteCode: string;
+  inviterId: string;
   fullName: string;
   birthday: string; // ISO string format
   hometown: string;
@@ -21,6 +22,7 @@ export interface SignupState {
 
 const initialSignupData: SignupData = {
   inviteCode: "",
+  inviterId: "",
   fullName: "",
   birthday: "",
   hometown: "",
