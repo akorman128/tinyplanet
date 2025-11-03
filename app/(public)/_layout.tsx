@@ -14,15 +14,14 @@ export default function PublicLayout() {
         name="sign-up"
         options={{
           headerShown: false, // Handled by sign-up/_layout.tsx
+          headerTransparent: true,
         }}
       />
       <Stack.Screen
         name="sign-in"
         options={{
-          title: "Sign In",
+          headerShown: false, // Handled by sign-up/_layout.tsx
           headerTransparent: true,
-          headerLargeTitle: true,
-          headerBackButtonDisplayMode: "minimal",
         }}
       />
     </Stack>
