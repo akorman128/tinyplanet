@@ -10,8 +10,7 @@ import { Button, Input, Heading, Body } from "@/design-system";
 
 // Zod schema for phone number validation
 const signInSchema = z.object({
-  phone: z.string().min(1, "Phone number is required"),
-  // .regex(/^\+?[1-9]\d{1,14}$/, "Please enter a valid phone number"),
+  phone: z.string().min(10, "Phone number is required"),
 });
 
 type SignInForm = z.infer<typeof signInSchema>;
@@ -36,17 +35,17 @@ export default function Page() {
     if (!isLoaded) return;
 
     try {
-      console.error({ phone: `+1${data.phone}` });
-      // await signInWithPhoneNumber({
-      //   phone: data.phone,
-      // });
-      // Navigate to OTP verification screen
+      const phone = `+1${data.phone.replace(/[^0-9]/g, "")}`;
+
+      await signInWithPhoneNumber({
+        phone,
+      });
+
       router.push({
         pathname: "/sign-in/verify-otp",
-        params: { phone: `+1${data.phone}` },
+        params: { phone },
       });
     } catch (err) {
-      // console.error(JSON.stringify(err, null, 2));
       setError("phone", {
         type: "manual",
         message: "Failed to send verification code. Please try again.",
@@ -58,16 +57,16 @@ export default function Page() {
     <KeyboardAwareScrollView
       automaticallyAdjustsScrollIndicatorInsets
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerClassName="flex-1 p-4 gap-6 justify-center"
+      contentContainerClassName="flex-1 justify-center p-4 gap-6"
       enableOnAndroid={true}
       extraScrollHeight={20}
       keyboardShouldPersistTaps="handled"
     >
       <View className="gap-2">
-        <Heading>Welcome back</Heading>
+        <Heading className="text-center">Welcome back</Heading>
       </View>
 
-      <View className="gap-4">
+      <View className="gap-4 ">
         <Controller
           control={control}
           name="phone"
@@ -77,7 +76,7 @@ export default function Page() {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              placeholder="+1 (800) 000-0000"
+              placeholder="(917) 123-4567"
               keyboardType="phone-pad"
               autoComplete="tel"
               textContentType="telephoneNumber"

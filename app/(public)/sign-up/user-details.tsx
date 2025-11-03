@@ -60,7 +60,7 @@ export default function UserDetailsPage() {
     console.log("User details saved to store. Ready for next screen.");
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
+  const handleDateChange = (_: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
       setShowDatePicker(false);
     }
@@ -79,118 +79,116 @@ export default function UserDetailsPage() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
-      <KeyboardAwareScrollView
-        contentContainerClassName="flex-grow items-center justify-center px-6"
-        enableOnAndroid={true}
-        extraScrollHeight={20}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="w-full max-w-md gap-6">
-          <View className="gap-2">
-            <Heading className="text-center">Tell us about yourself</Heading>
-            <Subheading className="text-center">
-              Like what&apos;s your deal?
-            </Subheading>
-          </View>
+    <KeyboardAwareScrollView
+      contentContainerClassName="flex-grow items-center justify-center px-6"
+      enableOnAndroid={true}
+      extraScrollHeight={20}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View className="w-full max-w-md gap-6">
+        <View className="gap-2">
+          <Heading className="text-center">Tell us about yourself</Heading>
+          <Subheading className="text-center">
+            Like what&apos;s your deal?
+          </Subheading>
+        </View>
 
-          <View className="gap-4">
-            <Controller
-              control={control}
-              name="fullName"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Full Name"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="Enter your full name"
-                  autoCapitalize="words"
-                  error={errors.fullName?.message}
-                />
-              )}
-            />
+        <View className="gap-4">
+          <Controller
+            control={control}
+            name="fullName"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Full Name"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Enter your full name"
+                autoCapitalize="words"
+                error={errors.fullName?.message}
+              />
+            )}
+          />
 
-            <Controller
-              control={control}
-              name="birthday"
-              render={({ field: { value } }) => (
-                <>
-                  <View className="w-full">
-                    <Body className="text-sm font-semibold text-gray-700 mb-2">
-                      Birthday
-                    </Body>
-                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                      <View
-                        className={`py-4 px-4 rounded-xl border-2 bg-white ${
-                          errors.birthday ? "border-red-500" : "border-gray-300"
-                        }`}
+          <Controller
+            control={control}
+            name="birthday"
+            render={({ field: { value } }) => (
+              <>
+                <View className="w-full">
+                  <Body className="text-sm font-semibold text-gray-700 mb-2">
+                    Birthday
+                  </Body>
+                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                    <View
+                      className={`py-4 px-4 rounded-xl border-2 bg-white ${
+                        errors.birthday ? "border-red-500" : "border-gray-300"
+                      }`}
+                    >
+                      <Body
+                        className={value ? "text-gray-900" : "text-gray-400"}
                       >
-                        <Body
-                          className={value ? "text-gray-900" : "text-gray-400"}
-                        >
-                          {value ? formatDate(value) : "Select your birthday"}
-                        </Body>
-                      </View>
-                    </TouchableOpacity>
-                    {errors.birthday && (
-                      <Body className="text-sm text-red-500 mt-1">
-                        {errors.birthday.message}
+                        {value ? formatDate(value) : "Select your birthday"}
                       </Body>
+                    </View>
+                  </TouchableOpacity>
+                  {errors.birthday && (
+                    <Body className="text-sm text-red-500 mt-1">
+                      {errors.birthday.message}
+                    </Body>
+                  )}
+                </View>
+
+                {showDatePicker && (
+                  <View className="bg-white rounded-xl p-4">
+                    <DateTimePicker
+                      value={value || new Date()}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      onChange={handleDateChange}
+                      maximumDate={new Date()}
+                      textColor="#000000"
+                    />
+                    {Platform.OS === "ios" && (
+                      <Button
+                        variant="secondary"
+                        onPress={() => setShowDatePicker(false)}
+                        className="mt-4"
+                      >
+                        Done
+                      </Button>
                     )}
                   </View>
+                )}
+              </>
+            )}
+          />
 
-                  {showDatePicker && (
-                    <View className="bg-white rounded-xl p-4">
-                      <DateTimePicker
-                        value={value || new Date()}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        onChange={handleDateChange}
-                        maximumDate={new Date()}
-                        textColor="#000000"
-                      />
-                      {Platform.OS === "ios" && (
-                        <Button
-                          variant="secondary"
-                          onPress={() => setShowDatePicker(false)}
-                          className="mt-4"
-                        >
-                          Done
-                        </Button>
-                      )}
-                    </View>
-                  )}
-                </>
-              )}
-            />
+          <Controller
+            control={control}
+            name="hometown"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Hometown"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Where are you from?"
+                autoCapitalize="words"
+                error={errors.hometown?.message}
+              />
+            )}
+          />
 
-            <Controller
-              control={control}
-              name="hometown"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Hometown"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="Where are you from?"
-                  autoCapitalize="words"
-                  error={errors.hometown?.message}
-                />
-              )}
-            />
-
-            <Button
-              variant="primary"
-              onPress={handleSubmit(onSubmit)}
-              disabled={!isValid}
-            >
-              Continue
-            </Button>
-          </View>
+          <Button
+            variant="primary"
+            onPress={handleSubmit(onSubmit)}
+            disabled={!isValid}
+          >
+            Continue
+          </Button>
         </View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+      </View>
+    </KeyboardAwareScrollView>
   );
 }

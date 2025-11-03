@@ -16,6 +16,12 @@ export default function SignUpLayout() {
         }}
       />
       <Stack.Screen
+        name="location-permission"
+        options={{
+          title: "",
+        }}
+      />
+      <Stack.Screen
         name="user-details"
         options={{
           title: "",

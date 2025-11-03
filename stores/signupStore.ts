@@ -7,6 +7,10 @@ export interface SignupData {
   fullName: string;
   birthday: string; // ISO string format
   hometown: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export interface SignupState {

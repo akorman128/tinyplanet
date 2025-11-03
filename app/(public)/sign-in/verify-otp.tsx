@@ -43,6 +43,7 @@ export default function Page() {
         phone: phone || "",
         token: data.otp,
       });
+
       // Navigation will be handled automatically after successful verification
       // as the auth state changes
     } catch (err) {
@@ -63,7 +64,7 @@ export default function Page() {
     <KeyboardAwareScrollView
       automaticallyAdjustsScrollIndicatorInsets
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerClassName="p-4 gap-6"
+      contentContainerClassName="flex-1 justify-center p-4 gap-6"
       enableOnAndroid={true}
       extraScrollHeight={20}
       keyboardShouldPersistTaps="handled"

@@ -53,7 +53,7 @@ export default function InviteCodePage() {
     setSignupData({ inviteCode: code });
 
     // Navigate to next screen
-    router.push("/sign-up/user-details");
+    router.push("/sign-up/location-permission");
   };
 
   return (
