@@ -1,9 +1,9 @@
 import { View, Text } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, Heading, Subheading, Caption } from "../../design-system";
+import { Button, Heading, Subheading, Caption } from "@/design-system";
 
-export default function Page() {
+export default function WelcomePage() {
   return (
     <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
       <View className="flex-1 items-center justify-center px-6">

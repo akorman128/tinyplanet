@@ -6,14 +6,9 @@ interface InputProps extends TextInputProps {
   error?: string;
 }
 
-export function Input({
-  className = "",
-  label,
-  error,
-  ...props
-}: InputProps) {
+export function Input({ className = "", label, error, ...props }: InputProps) {
   const baseStyles =
-    "py-4 px-4 rounded-xl border-2 border-gray-300 bg-white text-base text-gray-900";
+    "py-5 px-4 rounded-xl border-2 border-gray-300 bg-white text-base text-gray-900 leading-5";
   const focusStyles = "focus:border-purple-600";
   const errorStyles = error ? "border-red-500" : "";
   const inputClass = `${baseStyles} ${focusStyles} ${errorStyles} ${className}`;
@@ -25,7 +20,12 @@ export function Input({
           {label}
         </Text>
       )}
-      <TextInput className={inputClass} placeholderTextColor="#9CA3AF" {...props} />
+      <TextInput
+        className={inputClass}
+        placeholderTextColor="#9CA3AF"
+        textAlignVertical="center"
+        {...props}
+      />
       {error && <Text className="text-sm text-red-500 mt-1">{error}</Text>}
     </View>
   );

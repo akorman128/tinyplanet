@@ -12,13 +12,13 @@ export default function SignUpLayout() {
       <Stack.Screen
         name="invite-code"
         options={{
-          title: "Invite Code",
+          title: "",
         }}
       />
       <Stack.Screen
         name="user-details"
         options={{
-          title: "About You",
+          title: "",
         }}
       />
     </Stack>

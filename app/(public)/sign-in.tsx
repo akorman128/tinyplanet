@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Text, TextInput, Button, View, ScrollView } from "react-native";
+import { Text, TextInput, Button, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { router } from "expo-router";
 
@@ -25,10 +26,13 @@ export default function Page() {
   };
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       automaticallyAdjustsScrollIndicatorInsets
       contentInsetAdjustmentBehavior="automatic"
       contentContainerStyle={{ padding: 16, gap: 8 }}
+      enableOnAndroid={true}
+      extraScrollHeight={20}
+      keyboardShouldPersistTaps="handled"
     >
       <Text>Email Address:</Text>
       <TextInput
@@ -59,6 +63,6 @@ export default function Page() {
         <Text>Don&apos;t have an account? </Text>
         <Text onPress={() => router.replace("/sign-up")}>Sign up</Text>
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
