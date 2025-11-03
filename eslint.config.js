@@ -1,6 +1,7 @@
 const { defineConfig } = require("eslint/config");
 const expoConfig = require("eslint-config-expo/flat");
 const eslintPluginPrettierRecommended = require("eslint-plugin-prettier/recommended");
+const importPlugin = require("eslint-plugin-import");
 
 module.exports = defineConfig([
   expoConfig,
@@ -9,13 +10,17 @@ module.exports = defineConfig([
     ignores: ["dist/*"],
   },
   {
+    plugins: {
+      import: importPlugin,
+    },
     settings: {
       "import/resolver": {
-        typescript: true,
-        "babel-module": {
-          alias: {
-            "@": "./",
-          },
+        typescript: {
+          alwaysTryTypes: true,
+          project: "./tsconfig.json",
+        },
+        node: {
+          extensions: [".js", ".jsx", ".ts", ".tsx"],
         },
       },
     },
