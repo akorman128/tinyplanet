@@ -61,11 +61,16 @@ export default function UserDetailsPage() {
     router.push("/sign-up/phone-number");
   };
 
-  const handleDateChange = (_: any, selectedDate?: Date) => {
+  const handleDateChange = (
+    onChange: (date: Date) => void,
+    _: any,
+    selectedDate?: Date
+  ) => {
     if (Platform.OS === "android") {
       setShowDatePicker(false);
     }
     if (selectedDate) {
+      onChange(selectedDate);
       setValue("birthday", selectedDate, { shouldValidate: true });
     }
   };
@@ -106,6 +111,8 @@ export default function UserDetailsPage() {
                 onBlur={onBlur}
                 placeholder="Enter your full name"
                 autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
                 error={errors.fullName?.message}
               />
             )}
@@ -114,7 +121,7 @@ export default function UserDetailsPage() {
           <Controller
             control={control}
             name="birthday"
-            render={({ field: { value } }) => (
+            render={({ field: { value, onChange } }) => (
               <>
                 <View className="w-full">
                   <Body className="text-sm font-semibold text-gray-700 mb-2">
@@ -146,7 +153,9 @@ export default function UserDetailsPage() {
                       value={value || new Date()}
                       mode="date"
                       display={Platform.OS === "ios" ? "spinner" : "default"}
-                      onChange={handleDateChange}
+                      onChange={(event, date) =>
+                        handleDateChange(onChange, event, date)
+                      }
                       maximumDate={new Date()}
                       textColor="#000000"
                     />

@@ -24,6 +24,7 @@ export function Input({ className = "", label, error, ...props }: InputProps) {
         className={inputClass}
         placeholderTextColor="#9CA3AF"
         textAlignVertical="center"
+        autoComplete="off"
         {...props}
       />
       {error && <Text className="text-sm text-red-500 mt-1">{error}</Text>}

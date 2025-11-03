@@ -27,6 +27,18 @@ export default function SignUpLayout() {
           title: "",
         }}
       />
+      <Stack.Screen
+        name="phone-number"
+        options={{
+          title: "",
+        }}
+      />
+      <Stack.Screen
+        name="verify-otp"
+        options={{
+          title: "",
+        }}
+      />
     </Stack>
   );
 }
