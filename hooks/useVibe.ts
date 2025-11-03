@@ -1,4 +1,4 @@
-import { Vibe } from "../types/vibe";
+import { Vibe, GetVibesDto, GetVibesOutputDto } from "../types/vibe";
 import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "../stores/profileStore";
 
@@ -7,6 +7,37 @@ export const useVibe = () => {
   const { profileState } = useProfileStore();
 
   // ––– QUERIES –––
+
+  const getVibes = async (
+    input: GetVibesDto = {}
+  ): Promise<GetVibesOutputDto> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    const { recipientId, giverId, inviteCodeId } = input;
+
+    let query = supabase.from("vibes").select("*");
+
+    // Apply optional filters
+    if (recipientId) {
+      query = query.eq("receiver_id", recipientId);
+    }
+    if (giverId) {
+      query = query.eq("giver_id", giverId);
+    }
+    if (inviteCodeId) {
+      query = query.eq("invite_code_id", inviteCodeId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return { data: (data as Vibe[]) ?? [] };
+  };
+
+  // ––– MUTATIONS –––
 
   interface createVibeDto {
     receiverId: string;
@@ -62,6 +93,7 @@ export const useVibe = () => {
 
   return {
     isLoaded,
+    getVibes,
     createOrUpdateVibe,
     deleteVibe,
   };

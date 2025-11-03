@@ -1,7 +1,7 @@
 import { useSignIn } from "@/hooks/useSignIn";
 import { OtpVerificationScreen } from "@/components/OtpVerificationScreen";
 
-export default function Page() {
+export default function VerifyOtp() {
   const { verifyOtp, isLoaded } = useSignIn();
 
   return (

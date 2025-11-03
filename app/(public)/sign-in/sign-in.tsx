@@ -1,7 +1,7 @@
 import { useSignIn } from "@/hooks/useSignIn";
 import { PhoneInputScreen } from "@/components/PhoneInputScreen";
 
-export default function Page() {
+export default function SignInPage() {
   const { signInWithPhoneNumber, isLoaded } = useSignIn();
 
   return (
