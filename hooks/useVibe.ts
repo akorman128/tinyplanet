@@ -34,7 +34,7 @@ export const useVibe = () => {
 
     if (error) throw error;
 
-    return { data: (data as Vibe[]) ?? [] };
+    return { data };
   };
 
   // ––– MUTATIONS –––

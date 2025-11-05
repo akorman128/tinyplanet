@@ -80,8 +80,6 @@ export const useInviteCodes = () => {
       .select()
       .single();
 
-    //TODO: SEND INVITE CODE TO USER
-
     if (error) {
       if (error.code === "23505") {
         // Unique violation
@@ -92,6 +90,55 @@ export const useInviteCodes = () => {
 
     return { data };
   };
+
+  // ––– SEND INVITE CODE VIA SMS –––
+
+  interface sendInviteCodeDto {
+    phone_number: string;
+    invite_code: string;
+    inviter_name?: string;
+  }
+
+  interface sendInviteCodeOutputDto {
+    success: boolean;
+    message: string;
+    messageSid?: string;
+  }
+
+  const sendInviteCode = async (
+    input: sendInviteCodeDto
+  ): Promise<sendInviteCodeOutputDto> => {
+    const { phone_number, invite_code, inviter_name } = input;
+
+    if (!profileState?.id) {
+      throw new Error("User must be authenticated to send invite codes");
+    }
+
+    // Call the Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke("send-invite-sms", {
+      body: {
+        phone_number,
+        invite_code,
+        inviter_name: inviter_name || profileState.full_name,
+      },
+    });
+
+    if (error) {
+      throw new Error(`Failed to send invite: ${error.message}`);
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || "Failed to send invite");
+    }
+
+    return {
+      success: true,
+      message: data.message || "Invite sent successfully",
+      messageSid: data.messageSid,
+    };
+  };
+
+  // ––– MUTATIONS –––
 
   interface updateInviteCodeDto {
     inviteCodeId: string;
@@ -172,6 +219,7 @@ export const useInviteCodes = () => {
     isLoaded,
     getInviteCodes,
     createInviteCode,
+    sendInviteCode,
     updateInviteCode,
     redeemInviteCode,
   };
