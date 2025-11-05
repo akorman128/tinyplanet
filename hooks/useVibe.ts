@@ -40,8 +40,9 @@ export const useVibe = () => {
   // ––– MUTATIONS –––
 
   interface createVibeDto {
-    receiverId: string;
+    receiverId?: string | null;
     emojis: string[];
+    inviteCodeId?: string;
   }
 
   interface createVibeOutputDto {
@@ -51,21 +52,28 @@ export const useVibe = () => {
   const createOrUpdateVibe = async (
     input: createVibeDto
   ): Promise<createVibeOutputDto> => {
-    const { receiverId, emojis } = input;
+    const { receiverId, emojis, inviteCodeId } = input;
 
     if (emojis.length !== 3) {
       throw new Error("Vibe must have exactly 3 emojis");
     }
 
+    const vibeData: any = {
+      giver_id: profileState!.id,
+      receiver_id: receiverId || null,
+      emojis,
+    };
+
+    if (inviteCodeId) {
+      vibeData.invite_code_id = inviteCodeId;
+    }
+
     const { data, error } = await supabase
       .from("vibes")
-      .upsert(
-        { giver_id: profileState!.id, receiver_id: receiverId, emojis },
-        {
-          onConflict: "giver_id,receiver_id",
-          ignoreDuplicates: false,
-        }
-      )
+      .upsert(vibeData, {
+        onConflict: "giver_id,receiver_id",
+        ignoreDuplicates: false,
+      })
       .select()
       .single();
 
@@ -91,10 +99,28 @@ export const useVibe = () => {
     if (error) throw error;
   };
 
+  interface updateVibeReceiverDto {
+    vibeId: string;
+    receiverId: string;
+  }
+
+  const updateVibeReceiver = async (
+    input: updateVibeReceiverDto
+  ): Promise<void> => {
+    const { vibeId, receiverId } = input;
+    const { error } = await supabase
+      .from("vibes")
+      .update({ receiver_id: receiverId })
+      .eq("id", vibeId);
+
+    if (error) throw error;
+  };
+
   return {
     isLoaded,
     getVibes,
     createOrUpdateVibe,
     deleteVibe,
+    updateVibeReceiver,
   };
 };

@@ -1,6 +1,9 @@
 import { useSupabase } from "./useSupabase";
 import { useSignupStore } from "@/stores/signupStore";
 import { useProfile } from "./useProfile";
+import { useVibe } from "./useVibe";
+import { useInviteCodes } from "./useInviteCodes";
+import { InviteCodeStatus } from "@/types/invite_code";
 
 interface signUpWithPhoneNumberDto {
   phone: string;
@@ -14,6 +17,8 @@ interface verifyOtpForSignUpDto {
 export const useSignUp = () => {
   const { isLoaded, supabase } = useSupabase();
   const { createProfile } = useProfile();
+  const { getVibes, updateVibeReceiver } = useVibe();
+  const { getInviteCodes } = useInviteCodes();
   const { signupData, clearSignupData } = useSignupStore();
 
   const signUpWithEmail = async ({
@@ -83,6 +88,43 @@ export const useSignUp = () => {
       location: signupData.location,
       inviter_id: signupData.inviterId,
     });
+
+    // Link any vibes associated with the invite code to this user
+    if (signupData.inviteCode) {
+      try {
+        // Get the invite code record
+        const { data: inviteCodes } = await getInviteCodes({
+          filters: {
+            code: signupData.inviteCode,
+            status: InviteCodeStatus.REDEEMED,
+          },
+        });
+
+        if (inviteCodes && inviteCodes.length > 0) {
+          const inviteCodeId = inviteCodes[0].id;
+
+          // Get vibes associated with this invite code
+          const { data: vibes } = await getVibes({
+            inviteCodeId,
+          });
+
+          // Update each vibe's receiver_id to link to the new user
+          if (vibes && vibes.length > 0) {
+            await Promise.all(
+              vibes.map((vibe) =>
+                updateVibeReceiver({
+                  vibeId: vibe.id,
+                  receiverId: data.user.id,
+                })
+              )
+            );
+          }
+        }
+      } catch (vibeError) {
+        // Log error but don't fail the signup process
+        console.error("Error linking vibes:", vibeError);
+      }
+    }
 
     // Clear signup data after successful profile creation
     clearSignupData();

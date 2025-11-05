@@ -1,6 +1,7 @@
 import { useProfileStore } from "../stores/profileStore";
 import { useSupabase } from "./useSupabase";
 import { InviteCode, InviteCodeStatus } from "../types/invite_code";
+import { generateInviteCode } from "../utils/inviteCode";
 
 export const useInviteCodes = () => {
   const { isLoaded, supabase } = useSupabase();
@@ -52,43 +53,82 @@ export const useInviteCodes = () => {
   };
 
   interface createInviteCodeDto {
-    code: string;
+    code?: string; // Optional - will be generated if not provided
     expires_at: Date;
   }
 
   interface createInviteCodeOutputDto {
     data: InviteCode;
+    code: string; // The generated or provided code
   }
 
   const createInviteCode = async (
     input: createInviteCodeDto
   ): Promise<createInviteCodeOutputDto> => {
-    const { code, expires_at } = input;
+    const { code: providedCode, expires_at } = input;
 
     if (!profileState?.id) {
       throw new Error("User must be authenticated to create invite codes");
     }
 
-    const { data, error } = await supabase
-      .from("invite_codes")
-      .insert({
-        code,
-        inviter_id: profileState.id,
-        status: "active",
-        expires_at,
-      })
-      .select()
-      .single();
+    // If code is provided, use it directly (no retry)
+    if (providedCode) {
+      const { data, error } = await supabase
+        .from("invite_codes")
+        .insert({
+          code: providedCode,
+          inviter_id: profileState.id,
+          status: "active",
+          expires_at,
+        })
+        .select()
+        .single();
 
-    if (error) {
+      if (error) {
+        if (error.code === "23505") {
+          throw new Error("Code already exists, please try again");
+        }
+        throw error;
+      }
+
+      return { data, code: providedCode };
+    }
+
+    // Generate code with retry logic
+    const maxRetries = 5;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const generatedCode = generateInviteCode();
+
+      const { data, error } = await supabase
+        .from("invite_codes")
+        .insert({
+          code: generatedCode,
+          inviter_id: profileState.id,
+          status: "active",
+          expires_at,
+        })
+        .select()
+        .single();
+
+      // Success - return the data and code
+      if (!error) {
+        return { data, code: generatedCode };
+      }
+
+      // If it's a duplicate code error and we haven't exhausted retries, try again
+      if (error.code === "23505" && attempt < maxRetries - 1) {
+        continue;
+      }
+
+      // Otherwise throw the error
       if (error.code === "23505") {
-        // Unique violation
-        throw new Error("Code already exists, please try again");
+        throw new Error("Failed to generate unique invite code after multiple attempts");
       }
       throw error;
     }
 
-    return { data };
+    throw new Error("Failed to create invite code");
   };
 
   // ––– SEND INVITE CODE VIA SMS –––

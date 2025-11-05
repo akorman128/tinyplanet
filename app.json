@@ -11,7 +11,10 @@
     "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.alexkorman.tiny-planet"
+      "bundleIdentifier": "com.alexkorman.tiny-planet",
+      "infoPlist": {
+        "NSContactsUsageDescription": "We need access to your contacts so you can easily invite friends to Tiny Planet."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,10 +22,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.alexkorman.tiny-planet"
+      "package": "com.alexkorman.tiny-planet",
+      "permissions": ["READ_CONTACTS"]
     },
     "plugins": [
       "expo-router",
+      "expo-contacts",
       [
         "expo-splash-screen",
         {
