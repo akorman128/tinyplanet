@@ -99,18 +99,35 @@ export const useVibe = () => {
     if (error) throw error;
   };
 
-  interface updateVibeReceiverDto {
+  interface updateVibeDto {
     vibeId: string;
-    receiverId: string;
+    receiverId?: string;
+    emojis?: string[];
+    inviteCodeId?: string;
   }
 
-  const updateVibeReceiver = async (
-    input: updateVibeReceiverDto
-  ): Promise<void> => {
-    const { vibeId, receiverId } = input;
+  const updateVibe = async (input: updateVibeDto): Promise<void> => {
+    const { vibeId, receiverId, emojis, inviteCodeId } = input;
+
+    if (emojis && emojis.length !== 3) {
+      throw new Error("Vibe must have exactly 3 emojis");
+    }
+
+    const updateData: any = {};
+
+    if (receiverId !== undefined) {
+      updateData.receiver_id = receiverId;
+    }
+    if (emojis !== undefined) {
+      updateData.emojis = emojis;
+    }
+    if (inviteCodeId !== undefined) {
+      updateData.invite_code_id = inviteCodeId;
+    }
+
     const { error } = await supabase
       .from("vibes")
-      .update({ receiver_id: receiverId })
+      .update(updateData)
       .eq("id", vibeId);
 
     if (error) throw error;
@@ -121,6 +138,6 @@ export const useVibe = () => {
     getVibes,
     createOrUpdateVibe,
     deleteVibe,
-    updateVibeReceiver,
+    updateVibe,
   };
 };

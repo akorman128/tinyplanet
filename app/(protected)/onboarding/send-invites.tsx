@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Alert } from "react-native";
 import { router } from "expo-router";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,7 @@ import { Button, Heading, Subheading } from "@/design-system";
 import { useVibe } from "@/hooks/useVibe";
 import { useInviteCodes } from "@/hooks/useInviteCodes";
 import { useContactPicker } from "@/hooks/useContactPicker";
+import { useProfile } from "@/hooks/useProfile";
 import { useSignupStore } from "@/stores/signupStore";
 import { isValidVibe, extractEmojis } from "@/utils/emojiValidation";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -29,11 +30,19 @@ type VibeForm = z.infer<typeof vibeSchema>;
 
 export default function CreateVibePage() {
   const { signupData } = useSignupStore();
+  const { profileState, updateProfile } = useProfile();
   const { createOrUpdateVibe } = useVibe();
   const { createInviteCode, sendInviteCode } = useInviteCodes();
   const { pickContact: pickContactFromDevice } = useContactPicker();
 
   const [isSending, setIsSending] = useState(false);
+
+  // Check if invites have already been sent and redirect if so
+  useEffect(() => {
+    if (profileState?.onboarding_invites_sent) {
+      router.replace("/(protected)/(tabs)");
+    }
+  }, [profileState?.onboarding_invites_sent]);
 
   // Initialize 2 separate forms
   const form1 = useForm<VibeForm>({
@@ -97,6 +106,13 @@ export default function CreateVibePage() {
       });
 
       await Promise.all(sendPromises);
+
+      // Mark onboarding_invites_sent as true in profile
+      if (profileState) {
+        await updateProfile({
+          updateData: { onboarding_invites_sent: true },
+        });
+      }
 
       // Navigate immediately to next screen
       router.replace("/(protected)/(tabs)");

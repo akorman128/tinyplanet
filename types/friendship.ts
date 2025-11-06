@@ -74,3 +74,12 @@ export interface DeclineFriendRequestInput {
 export interface UnfriendInput {
   targetUserId: string;
 }
+
+export interface CreateFriendInput {
+  currentUserId: string;
+  targetUserId: string;
+}
+
+export interface CreateFriendOutput {
+  data: Friendship;
+}

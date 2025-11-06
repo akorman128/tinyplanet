@@ -4,6 +4,7 @@ import { useProfile } from "./useProfile";
 import { useVibe } from "./useVibe";
 import { useInviteCodes } from "./useInviteCodes";
 import { InviteCodeStatus } from "@/types/invite_code";
+import { useFriends } from "./useFriends";
 
 interface signUpWithPhoneNumberDto {
   phone: string;
@@ -17,8 +18,9 @@ interface verifyOtpForSignUpDto {
 export const useSignUp = () => {
   const { isLoaded, supabase } = useSupabase();
   const { createProfile } = useProfile();
-  const { getVibes, updateVibeReceiver } = useVibe();
+  const { getVibes, updateVibe } = useVibe();
   const { getInviteCodes } = useInviteCodes();
+  const { createFriend } = useFriends();
   const { signupData, clearSignupData } = useSignupStore();
 
   const signUpWithEmail = async ({
@@ -78,9 +80,11 @@ export const useSignUp = () => {
 
     if (!data.user) throw new Error("User not found");
 
+    const userId = data.user.id;
+
     // Create new profile for the user using signup store data
     await createProfile({
-      id: data.user.id,
+      id: userId,
       phone_number: phone,
       full_name: signupData.fullName,
       hometown: signupData.hometown,
@@ -90,40 +94,41 @@ export const useSignUp = () => {
     });
 
     // Link any vibes associated with the invite code to this user
-    if (signupData.inviteCode) {
-      try {
-        // Get the invite code record
-        const { data: inviteCodes } = await getInviteCodes({
-          filters: {
-            code: signupData.inviteCode,
-            status: InviteCodeStatus.REDEEMED,
-          },
+    try {
+      // Get the invite code record
+      const { data: inviteCodes } = await getInviteCodes({
+        filters: {
+          code: signupData.inviteCode,
+          status: InviteCodeStatus.REDEEMED,
+        },
+      });
+
+      if (inviteCodes && inviteCodes.length > 0) {
+        const inviteCodeId = inviteCodes[0].id;
+
+        // Get vibes associated with this invite code
+        const { data: vibes } = await getVibes({
+          inviteCodeId,
         });
 
-        if (inviteCodes && inviteCodes.length > 0) {
-          const inviteCodeId = inviteCodes[0].id;
-
-          // Get vibes associated with this invite code
-          const { data: vibes } = await getVibes({
-            inviteCodeId,
-          });
-
-          // Update each vibe's receiver_id to link to the new user
-          if (vibes && vibes.length > 0) {
-            await Promise.all(
-              vibes.map((vibe) =>
-                updateVibeReceiver({
-                  vibeId: vibe.id,
-                  receiverId: data.user.id,
-                })
-              )
-            );
-          }
-        }
-      } catch (vibeError) {
-        // Log error but don't fail the signup process
-        console.error("Error linking vibes:", vibeError);
+        await updateVibe({
+          vibeId: vibes[0].id,
+          receiverId: userId,
+        });
       }
+    } catch (vibeError) {
+      // Log error but don't fail the signup process
+      console.error("Error linking vibes:", vibeError);
+    }
+
+    try {
+      await createFriend({
+        currentUserId: userId,
+        targetUserId: signupData.inviterId,
+      });
+    } catch (friendError) {
+      // Log error but don't fail the signup process
+      console.error("Error creating friend:", friendError);
     }
 
     // Clear signup data after successful profile creation

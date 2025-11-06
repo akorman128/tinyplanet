@@ -12,6 +12,8 @@ import {
   AcceptFriendRequestOutput,
   DeclineFriendRequestInput,
   UnfriendInput,
+  CreateFriendInput,
+  CreateFriendOutput,
   FriendshipWithProfiles,
   Friend,
   FriendshipStatus,
@@ -267,6 +269,35 @@ export const useFriends = () => {
     if (error) throw error;
   };
 
+  const createFriend = async (
+    input: CreateFriendInput
+  ): Promise<CreateFriendOutput> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    const { currentUserId, targetUserId } = input;
+
+    validateFriendRequest(currentUserId, targetUserId);
+
+    const [user_a, user_b] = orderUserIds(currentUserId, targetUserId);
+
+    const { data, error } = await supabase
+      .from("friendships")
+      .insert({
+        user_a,
+        user_b,
+        requested_by: targetUserId,
+        status: FRIENDSHIP_STATUS.ACCEPTED,
+        accepted_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data };
+  };
+
   return {
     isLoaded,
     getFriends,
@@ -276,5 +307,6 @@ export const useFriends = () => {
     acceptFriendRequest,
     declineFriendRequest,
     unfriend,
+    createFriend,
   };
 };

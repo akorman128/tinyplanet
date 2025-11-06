@@ -53,6 +53,7 @@ export const useProfile = () => {
       longitude: number;
     };
     inviter_id?: string;
+    onboarding_invites_sent?: boolean;
   }
 
   const createProfile = useCallback(
