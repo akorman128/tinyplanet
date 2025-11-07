@@ -62,7 +62,7 @@ export default function SendInvitesPage() {
   const forms = [form1, form2];
 
   // Check if all 2 forms are valid //TODO: Remove this
-  const allFormsValid = true; //form1.formState.isValid && form2.formState.isValid;
+  const allFormsValid = form1.formState.isValid && form2.formState.isValid;
 
   const pickContact = async (formIndex: number) => {
     const phoneNumber = await pickContactFromDevice();
