@@ -1,12 +1,8 @@
-# Expo Supabase Starter
+# Tiny Planet
 
 ## Introduction
 
 This repository serves as a comprehensive starter project for developing React Native and Expo applications with Supabase as the backend.
-
-#### Disclaimer
-
-This is not supposed to be a template, boilerplate or a framework. It is an opinionated guide that shows how to do some things in a certain way. You are not forced to do everything exactly as it is shown here, decide what works best for you and your team and stay consistent with your style.
 
 ## Get Started
 
@@ -25,25 +21,26 @@ This is not supposed to be a template, boilerplate or a framework. It is an opin
 2. Clone the repository to your local machine
 
 ```bash
-git clone https://github.com/FlemingVincent/expo-supabase-starter.git
+git clone https://github.com/FlemingVincent/tinyplanet.git
 ```
 
 3. Navigate to the project directory
 
 ```bash
-cd expo-supabase-starter
+cd tinyplanet
 ```
 
 4. Install dependencies
 
 ```bash
-bun install
+npm install
 ```
 
 5. Update environment variables
+6. 
    - Update the `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_KEY` variables in the `.env` file with your Supabase URL and key respectively.
 
-6. Start the Expo development server
+7. Start the Expo development server
 
 ```bash
 npx expo start --clear --reset-cache
