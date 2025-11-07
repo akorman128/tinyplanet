@@ -12,7 +12,7 @@ export default function Page() {
       onVerifyOtp={async (phone, token) => {
         await verifyOtpAndCreateProfile({ phone, token });
         // Navigate to send invites page after successful verification
-        router.replace("/onboarding/send-invites");
+        // router.replace("/onboarding/send-invites");
       }}
       onResendCode={async (phone) => {
         await signUpWithPhoneNumber({ phone });

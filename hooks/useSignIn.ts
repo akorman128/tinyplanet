@@ -37,7 +37,7 @@ export const useSignIn = () => {
 
     // Supabase Auth will only send OTP if user exists with shouldCreateUser: false
     // This prevents new user creation and doesn't expose phone numbers to unauthenticated users
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signInWithOtp({
       phone,
       options: {
         shouldCreateUser: false,
@@ -63,6 +63,7 @@ export const useSignIn = () => {
     setProfileState(user);
 
     await updateUserLocation();
+    throw new Error("test");
   };
 
   const signInWithPassword = async (

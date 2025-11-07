@@ -93,7 +93,7 @@ export default function LocationPermissionPage() {
   // Show loading screen while checking/requesting location permissions
   if (isLoadingLocation) {
     return (
-      <KeyboardAwareScrollView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
+      <KeyboardAwareScrollView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50 ">
         <View className="flex-1 items-center justify-center px-6">
           <Heading className="text-center">Getting your location...</Heading>
         </View>

@@ -52,11 +52,9 @@ export function OtpVerificationScreen({
 
     try {
       await onVerifyOtp(phone || "", data.otp);
-
       // Navigation will be handled automatically after successful verification
       // as the auth state changes
     } catch (err) {
-      console.error(JSON.stringify(err, null, 2));
       setError("otp", {
         type: "manual",
         message: "Invalid verification code. Please try again.",
@@ -122,10 +120,6 @@ export function OtpVerificationScreen({
           disabled={!isValid || !isLoaded}
         >
           Verify
-        </Button>
-
-        <Button variant="secondary" onPress={onResendPress}>
-          Resend code
         </Button>
       </View>
 

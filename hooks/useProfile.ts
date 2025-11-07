@@ -53,8 +53,7 @@ export const useProfile = () => {
       latitude: number;
       longitude: number;
     };
-    inviter_id?: string;
-    onboarding_invites_sent?: boolean;
+    invited_by?: string;
   }
 
   const createProfile = useCallback(
@@ -66,7 +65,7 @@ export const useProfile = () => {
         hometown,
         birthday,
         location,
-        inviter_id,
+        invited_by,
       } = input;
 
       try {
@@ -83,7 +82,7 @@ export const useProfile = () => {
             location: location
               ? `POINT(${location.longitude} ${location.latitude})`
               : "",
-            inviter_id,
+            invited_by,
           })
           .select()
           .single();

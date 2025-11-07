@@ -5,6 +5,7 @@ import { useVibe } from "./useVibe";
 import { useInviteCodes } from "./useInviteCodes";
 import { InviteCodeStatus } from "@/types/invite_code";
 import { useFriends } from "./useFriends";
+import { useProfileStore } from "@/stores/profileStore";
 
 interface signUpWithPhoneNumberDto {
   phone: string;
@@ -82,23 +83,26 @@ export const useSignUp = () => {
 
     const userId = data.user.id;
 
-    // Critical operation - must succeed
-    await createProfile({
-      id: userId,
-      phone_number: phone,
-      full_name: signupData.fullName,
-      hometown: signupData.hometown,
-      birthday: signupData.birthday,
-      location: signupData.location,
-      inviter_id: signupData.inviteCode.inviter_id,
-    });
+    try {
+      await createProfile({
+        id: userId,
+        phone_number: phone,
+        full_name: signupData.fullName,
+        hometown: signupData.hometown,
+        birthday: signupData.birthday,
+        location: signupData.location,
+        invited_by: signupData.inviteCode.inviter_id,
+      });
+    } catch (error) {
+      console.error("Failed to create profile:", error);
+      throw error;
+    }
 
-    // Non-critical: Link vibes
     try {
       const { data: vibes } = await getVibes({
         inviteCodeId: signupData.inviteCode.id,
       });
-      if (vibes && vibes.length > 0) {
+      if (vibes.length > 0) {
         await updateVibe({
           vibeId: vibes[0].id,
           receiverId: userId,
@@ -106,10 +110,8 @@ export const useSignUp = () => {
       }
     } catch (error) {
       console.error("Failed to link vibes:", error);
-      // Continue - not critical
     }
 
-    // Non-critical: Create friend relationship
     try {
       await createFriend({
         currentUserId: userId,
@@ -117,21 +119,18 @@ export const useSignUp = () => {
       });
     } catch (error) {
       console.error("Failed to create friend relationship:", error);
-      // Continue - not critical
     }
 
-    // Non-critical: Redeem invite code
     try {
       await redeemInviteCode({
         code: signupData.inviteCode.code,
       });
     } catch (error) {
       console.error("Failed to redeem invite code:", error);
-      // Continue - not critical
     }
 
     // Clear signup data after successful profile creation
-    clearSignupData();
+    // clearSignupData();
   };
 
   return {

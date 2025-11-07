@@ -157,16 +157,12 @@ export const useInviteCodes = () => {
   ): Promise<sendInviteCodeOutputDto> => {
     const { phone_number, invite_code, inviter_name } = input;
 
-    if (!profileState?.id) {
-      throw new Error("User must be authenticated to send invite codes");
-    }
-
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke("send-invite-sms", {
       body: {
         phone_number,
         invite_code,
-        inviter_name: inviter_name || profileState.full_name,
+        inviter_name: inviter_name || profileState!.full_name,
       },
     });
 
@@ -215,14 +211,12 @@ export const useInviteCodes = () => {
       .from("invite_codes")
       .update(updateData)
       .eq("id", inviteCodeId)
-      .eq("status", "active")
-      .select()
-      .single();
+      .select();
 
     if (error) throw error;
-    if (!data) throw new Error("Code not found or already used");
+    if (data.length === 0) throw new Error("Code not found ");
 
-    return { data };
+    return { data: data[0] };
   };
 
   interface redeemInviteCodeDto {
@@ -237,10 +231,6 @@ export const useInviteCodes = () => {
     const { data } = await getInviteCodes({
       filters: { code: code, status: InviteCodeStatus.ACTIVE },
     });
-
-    if (!data || data.length === 0) {
-      throw new Error("Code not found or already used");
-    }
 
     const inviteCode = data[0];
 

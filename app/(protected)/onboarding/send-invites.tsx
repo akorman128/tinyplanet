@@ -29,9 +29,10 @@ const vibeSchema = z.object({
 type VibeForm = z.infer<typeof vibeSchema>;
 
 export default function SendInvitesPage() {
+  router.replace("/(protected)/(tabs)");
   const { signupData } = useSignupStore();
   const { profileState, updateProfile } = useProfile();
-  const { createOrUpdateVibe } = useVibe();
+  const { createVibe } = useVibe();
   const { createInviteCode, sendInviteCode } = useInviteCodes();
   const { pickContact: pickContactFromDevice } = useContactPicker();
 
@@ -60,7 +61,7 @@ export default function SendInvitesPage() {
   const forms = [form1, form2];
 
   // Check if all 2 forms are valid
-  const allFormsValid = form1.formState.isValid && form2.formState.isValid;
+  const allFormsValid = true; //form1.formState.isValid && form2.formState.isValid;
 
   const pickContact = async (formIndex: number) => {
     const phoneNumber = await pickContactFromDevice();
@@ -92,7 +93,7 @@ export default function SendInvitesPage() {
           expires_at: expiresAt,
         });
 
-        await createOrUpdateVibe({
+        await createVibe({
           receiverId: null,
           emojis: emojiArray,
           inviteCodeId: inviteCodeData.id,

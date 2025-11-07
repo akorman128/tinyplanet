@@ -49,7 +49,7 @@ export const useVibe = () => {
     data: Vibe;
   }
 
-  const createOrUpdateVibe = async (
+  const createVibe = async (
     input: createVibeDto
   ): Promise<createVibeOutputDto> => {
     const { receiverId, emojis, inviteCodeId } = input;
@@ -70,10 +70,7 @@ export const useVibe = () => {
 
     const { data, error } = await supabase
       .from("vibes")
-      .upsert(vibeData, {
-        onConflict: "giver_id,receiver_id",
-        ignoreDuplicates: false,
-      })
+      .insert(vibeData)
       .select()
       .single();
 
@@ -136,7 +133,7 @@ export const useVibe = () => {
   return {
     isLoaded,
     getVibes,
-    createOrUpdateVibe,
+    createVibe,
     deleteVibe,
     updateVibe,
   };
