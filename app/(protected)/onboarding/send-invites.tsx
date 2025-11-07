@@ -80,7 +80,7 @@ export default function SendInvitesPage() {
     setIsSending(true);
 
     try {
-      const formData = [form1.getValues()]; //, form2.getValues()];
+      const formData = [form1.getValues(), form2.getValues()];
 
       // Process all 2 invites in parallel
       const sendPromises = formData.map(async (data) => {
