@@ -54,13 +54,9 @@ export const useVibe = () => {
   ): Promise<createVibeOutputDto> => {
     const { receiverId, emojis, inviteCodeId } = input;
 
-    if (emojis.length !== 3) {
-      throw new Error("Vibe must have exactly 3 emojis");
-    }
-
     const vibeData: any = {
       giver_id: profileState!.id,
-      receiver_id: receiverId || null,
+      receiver_id: receiverId,
       emojis,
     };
 

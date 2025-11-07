@@ -157,6 +157,10 @@ export const useInviteCodes = () => {
   ): Promise<sendInviteCodeOutputDto> => {
     const { phone_number, invite_code, inviter_name } = input;
 
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     // Call the Supabase Edge Function
     const { data, error } = await supabase.functions.invoke("send-invite-sms", {
       body: {
@@ -167,7 +171,7 @@ export const useInviteCodes = () => {
     });
 
     if (error) {
-      throw new Error(`Failed to send invite: ${error.message}`);
+      throw new Error(`Failed to send invite: ${error}`);
     }
 
     if (!data.success) {

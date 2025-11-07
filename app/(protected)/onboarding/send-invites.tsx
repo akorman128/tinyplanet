@@ -14,6 +14,7 @@ import { useSignupStore } from "@/stores/signupStore";
 import { isValidVibe, extractEmojis } from "@/utils/emojiValidation";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { VibePhoneForm } from "@/components";
+import { formatPhoneNumber } from "@/utils";
 
 // Zod schema for vibe creation
 const vibeSchema = z.object({
@@ -29,7 +30,7 @@ const vibeSchema = z.object({
 type VibeForm = z.infer<typeof vibeSchema>;
 
 export default function SendInvitesPage() {
-  router.replace("/(protected)/(tabs)");
+  // router.replace("/(protected)/(tabs)");
   const { signupData } = useSignupStore();
   const { profileState, updateProfile } = useProfile();
   const { createVibe } = useVibe();
@@ -60,7 +61,7 @@ export default function SendInvitesPage() {
 
   const forms = [form1, form2];
 
-  // Check if all 2 forms are valid
+  // Check if all 2 forms are valid //TODO: Remove this
   const allFormsValid = true; //form1.formState.isValid && form2.formState.isValid;
 
   const pickContact = async (formIndex: number) => {
@@ -79,13 +80,12 @@ export default function SendInvitesPage() {
     setIsSending(true);
 
     try {
-      const formData = [form1.getValues(), form2.getValues()];
+      const formData = [form1.getValues()]; //, form2.getValues()];
 
       // Process all 2 invites in parallel
       const sendPromises = formData.map(async (data) => {
         const emojiArray = extractEmojis(data.emojis);
-        const phoneNumber = data.phone;
-
+        const phoneNumber = formatPhoneNumber(data.phone);
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
 
@@ -123,6 +123,7 @@ export default function SendInvitesPage() {
         "Error",
         error.message || "Failed to send invites. Please try again."
       );
+    } finally {
       setIsSending(false);
     }
   };

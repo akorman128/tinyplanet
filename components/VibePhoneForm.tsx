@@ -8,6 +8,7 @@ interface VibePhoneFormProps {
   phoneError?: string;
   onSelectContact?: () => void;
   showContactPicker?: boolean;
+  maxLength?: number;
 }
 
 export function VibePhoneForm({
@@ -16,6 +17,7 @@ export function VibePhoneForm({
   phoneError,
   onSelectContact,
   showContactPicker = true,
+  maxLength = 100,
 }: VibePhoneFormProps) {
   return (
     <View className="gap-4">
@@ -31,7 +33,7 @@ export function VibePhoneForm({
             placeholder="😊🎉✨"
             keyboardType="default"
             error={vibeError}
-            maxLength={20}
+            maxLength={maxLength}
           />
         )}
       />

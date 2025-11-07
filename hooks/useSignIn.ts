@@ -37,7 +37,7 @@ export const useSignIn = () => {
 
     // Supabase Auth will only send OTP if user exists with shouldCreateUser: false
     // This prevents new user creation and doesn't expose phone numbers to unauthenticated users
-    const { data, error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       phone,
       options: {
         shouldCreateUser: false,
@@ -49,21 +49,27 @@ export const useSignIn = () => {
 
   const verifyOtp = async (input: verifyOtpDto): Promise<void> => {
     const { phone, token } = input;
-    const { data, error } = await supabase.auth.verifyOtp({
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.verifyOtp({
       phone,
       token,
       type: "sms",
     });
     if (error) throw error;
 
-    if (!data?.user) throw new Error("User not found");
+    if (!user) throw new Error("User not found");
 
-    const user = await getProfile({ userId: data.user.id });
+    const profile = await getProfile({ userId: user.id });
 
-    setProfileState(user);
+    setProfileState(profile);
 
-    await updateUserLocation();
-    throw new Error("test");
+    try {
+      await updateUserLocation();
+    } catch (error) {
+      console.error("Failed to update location on sign-in:", error);
+    }
   };
 
   const signInWithPassword = async (
