@@ -19,7 +19,7 @@ export const useSignUp = () => {
   const { isLoaded, supabase } = useSupabase();
   const { createProfile } = useProfile();
   const { getVibes, updateVibe } = useVibe();
-  const { getInviteCodes } = useInviteCodes();
+  const { redeemInviteCode } = useInviteCodes();
   const { createFriend } = useFriends();
   const { signupData, clearSignupData } = useSignupStore();
 
@@ -82,7 +82,7 @@ export const useSignUp = () => {
 
     const userId = data.user.id;
 
-    // Create new profile for the user using signup store data
+    // Critical operation - must succeed
     await createProfile({
       id: userId,
       phone_number: phone,
@@ -90,45 +90,44 @@ export const useSignUp = () => {
       hometown: signupData.hometown,
       birthday: signupData.birthday,
       location: signupData.location,
-      inviter_id: signupData.inviterId,
+      inviter_id: signupData.inviteCode.inviter_id,
     });
 
-    // Link any vibes associated with the invite code to this user
+    // Non-critical: Link vibes
     try {
-      // Get the invite code record
-      const { data: inviteCodes } = await getInviteCodes({
-        filters: {
-          code: signupData.inviteCode,
-          status: InviteCodeStatus.REDEEMED,
-        },
+      const { data: vibes } = await getVibes({
+        inviteCodeId: signupData.inviteCode.id,
       });
-
-      if (inviteCodes && inviteCodes.length > 0) {
-        const inviteCodeId = inviteCodes[0].id;
-
-        // Get vibes associated with this invite code
-        const { data: vibes } = await getVibes({
-          inviteCodeId,
-        });
-
+      if (vibes && vibes.length > 0) {
         await updateVibe({
           vibeId: vibes[0].id,
           receiverId: userId,
         });
       }
-    } catch (vibeError) {
-      // Log error but don't fail the signup process
-      console.error("Error linking vibes:", vibeError);
+    } catch (error) {
+      console.error("Failed to link vibes:", error);
+      // Continue - not critical
     }
 
+    // Non-critical: Create friend relationship
     try {
       await createFriend({
         currentUserId: userId,
-        targetUserId: signupData.inviterId,
+        targetUserId: signupData.inviteCode.inviter_id,
       });
-    } catch (friendError) {
-      // Log error but don't fail the signup process
-      console.error("Error creating friend:", friendError);
+    } catch (error) {
+      console.error("Failed to create friend relationship:", error);
+      // Continue - not critical
+    }
+
+    // Non-critical: Redeem invite code
+    try {
+      await redeemInviteCode({
+        code: signupData.inviteCode.code,
+      });
+    } catch (error) {
+      console.error("Failed to redeem invite code:", error);
+      // Continue - not critical
     }
 
     // Clear signup data after successful profile creation

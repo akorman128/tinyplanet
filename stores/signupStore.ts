@@ -1,10 +1,10 @@
+import { InviteCode } from "@/types/invite_code";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 export interface SignupData {
-  inviteCode: string;
-  inviterId: string;
+  inviteCode: InviteCode;
   fullName: string;
   birthday: string; // ISO string format
   hometown: string;
@@ -21,8 +21,7 @@ export interface SignupState {
 }
 
 const initialSignupData: SignupData = {
-  inviteCode: "",
-  inviterId: "",
+  inviteCode: {} as InviteCode,
   fullName: "",
   birthday: "",
   hometown: "",

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, SafeAreaView, TouchableOpacity, Platform } from "react-native";
+import { View, TouchableOpacity, Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";

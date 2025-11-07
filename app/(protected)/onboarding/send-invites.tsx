@@ -28,7 +28,7 @@ const vibeSchema = z.object({
 
 type VibeForm = z.infer<typeof vibeSchema>;
 
-export default function CreateVibePage() {
+export default function SendInvitesPage() {
   const { signupData } = useSignupStore();
   const { profileState, updateProfile } = useProfile();
   const { createOrUpdateVibe } = useVibe();

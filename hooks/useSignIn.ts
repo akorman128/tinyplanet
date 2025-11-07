@@ -1,6 +1,7 @@
 import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "./useProfile";
+import * as Location from "expo-location";
 
 interface signInWithPhoneNumberDto {
   phone: string;
@@ -18,15 +19,29 @@ interface verifyOtpDto {
 
 export const useSignIn = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { getProfile } = useProfile();
+  const { getProfile, updateLocation } = useProfile();
   const { setProfileState } = useProfileStore();
+
+  const updateUserLocation = async (): Promise<void> => {
+    try {
+      await updateLocation();
+    } catch (error) {
+      console.error("Failed to update location on sign-in:", error);
+    }
+  };
 
   const signInWithPhoneNumber = async (
     input: signInWithPhoneNumberDto
   ): Promise<void> => {
     const { phone } = input;
+
+    // Supabase Auth will only send OTP if user exists with shouldCreateUser: false
+    // This prevents new user creation and doesn't expose phone numbers to unauthenticated users
     const { error } = await supabase.auth.signInWithOtp({
       phone,
+      options: {
+        shouldCreateUser: false,
+      },
     });
 
     if (error) throw error;
@@ -46,6 +61,8 @@ export const useSignIn = () => {
     const user = await getProfile({ userId: data.user.id });
 
     setProfileState(user);
+
+    await updateUserLocation();
   };
 
   const signInWithPassword = async (
@@ -60,8 +77,10 @@ export const useSignIn = () => {
 
     const user = await getProfile({ userId: data.user.id });
 
-    // GET USER
     setProfileState(user);
+
+    // Update location after successful sign-in
+    await updateUserLocation();
   };
 
   return {

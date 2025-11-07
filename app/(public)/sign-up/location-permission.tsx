@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { View, SafeAreaView } from "react-native";
+import { View } from "react-native";
 import { router } from "expo-router";
 import * as Location from "expo-location";
 
 import { Button, Heading, Body } from "@/design-system";
 import { useSignupStore } from "@/stores/signupStore";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function LocationPermissionPage() {
   const { setSignupData } = useSignupStore();
@@ -92,18 +93,18 @@ export default function LocationPermissionPage() {
   // Show loading screen while checking/requesting location permissions
   if (isLoadingLocation) {
     return (
-      <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
+      <KeyboardAwareScrollView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
         <View className="flex-1 items-center justify-center px-6">
           <Heading className="text-center">Getting your location...</Heading>
         </View>
-      </SafeAreaView>
+      </KeyboardAwareScrollView>
     );
   }
 
   // Show error screen if location permissions denied
   if (locationDenied) {
     return (
-      <SafeAreaView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
+      <KeyboardAwareScrollView className="flex-1 bg-gradient-to-b from-blue-50 to-purple-50">
         <View className="flex-1 items-center justify-center px-6 gap-4">
           <Heading className="text-center">Location Access Required</Heading>
           <Body className="text-center text-gray-600">
@@ -114,7 +115,7 @@ export default function LocationPermissionPage() {
             Retry
           </Button>
         </View>
-      </SafeAreaView>
+      </KeyboardAwareScrollView>
     );
   }
 

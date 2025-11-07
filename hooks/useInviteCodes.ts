@@ -27,28 +27,33 @@ export const useInviteCodes = () => {
     input: getInviteCodesDto
   ): Promise<getInviteCodesOutputDto> => {
     const { filters } = input;
-    const query = supabase
+
+    let query = supabase
       .from("invite_codes")
       .select("*")
       .eq("status", filters?.status ?? InviteCodeStatus.ACTIVE)
       .order("created_at", { ascending: false });
 
     if (filters?.code) {
-      query.eq("code", filters.code);
+      query = query.eq("code", filters.code);
     }
     if (filters?.userId) {
-      query.eq("inviter_id", filters.userId);
+      query = query.eq("inviter_id", filters.userId);
     }
 
     if (filters?.startDate) {
-      query.gte("created_at", filters.startDate.toISOString());
+      query = query.gte("created_at", filters.startDate.toISOString());
     }
     if (filters?.endDate) {
-      query.lte("created_at", filters.endDate.toISOString());
+      query = query.lte("created_at", filters.endDate.toISOString());
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+
+    if (error) {
+      console.error("Supabase error:", error);
+      throw error;
+    }
     return { data };
   };
 
@@ -123,7 +128,9 @@ export const useInviteCodes = () => {
 
       // Otherwise throw the error
       if (error.code === "23505") {
-        throw new Error("Failed to generate unique invite code after multiple attempts");
+        throw new Error(
+          "Failed to generate unique invite code after multiple attempts"
+        );
       }
       throw error;
     }

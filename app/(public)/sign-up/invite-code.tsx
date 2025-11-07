@@ -1,4 +1,4 @@
-import { View, SafeAreaView } from "react-native";
+import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { router } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -27,33 +27,30 @@ export default function InviteCodePage() {
   } = useForm<InviteCodeForm>({
     resolver: zodResolver(inviteCodeSchema),
     defaultValues: {
-      inviteCode: signupData.inviteCode || "",
+      inviteCode: signupData.inviteCode.code,
     },
     mode: "all",
   });
 
   const onSubmit = async (data: InviteCodeForm) => {
-    const code = data.inviteCode.trim();
+    const code = data.inviteCode.trim().toUpperCase();
 
-    // const inviteCodes = await getInviteCodes({
-    //   filters: {
-    //     code: code,
-    //   },
-    // });
+    const { data: inviteCodes } = await getInviteCodes({
+      filters: { code: code },
+    });
 
-    // if (inviteCodes.data.length === 0) {
-    //   setError("inviteCode", {
-    //     type: "manual",
-    //     message: "Invite code not found",
-    //   });
-    //   return;
-    // }
+    if (inviteCodes.length === 0) {
+      setError("inviteCode", {
+        type: "manual",
+        message: "Invite code not found",
+      });
+      return;
+    }
 
     // Save to store
-    // setSignupData({
-    //   inviteCode: code,
-    //   inviterId: inviteCodes.data[0].inviter_id,
-    // });
+    setSignupData({
+      inviteCode: inviteCodes[0],
+    });
 
     // Navigate to next screen
     router.push("/sign-up/location-permission");
@@ -82,7 +79,7 @@ export default function InviteCodePage() {
               <Input
                 label="Invite Code"
                 value={value}
-                onChangeText={onChange}
+                onChangeText={(text: string) => onChange(text.toUpperCase())}
                 onBlur={onBlur}
                 placeholder="Enter your invite code"
                 autoCapitalize="characters"
