@@ -22,6 +22,7 @@ export interface Friend {
   website: string;
   hometown: string;
   birthday: string;
+  location?: string; // PostGIS POINT as WKT string
 }
 
 export interface FriendshipWithProfiles extends Friendship {

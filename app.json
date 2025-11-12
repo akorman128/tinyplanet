@@ -13,7 +13,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.alexkorman.tiny-planet",
       "infoPlist": {
-        "NSContactsUsageDescription": "We need access to your contacts so you can easily invite friends to Tiny Planet."
+        "NSContactsUsageDescription": "We need access to your contacts so you can easily invite friends to Tiny Planet.",
+        "NSLocationWhenInUseUsageDescription": "We need your location to show you on the map with your friends.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "We need your location to show you on the map with your friends."
       }
     },
     "android": {
@@ -23,11 +25,23 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.alexkorman.tiny-planet",
-      "permissions": ["READ_CONTACTS"]
+      "permissions": [
+        "READ_CONTACTS",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-contacts",
+      "expo-location",
+      [
+        "@rnmapbox/maps",
+        {
+          "RNMapboxMapsDownloadToken": "YOUR_MAPBOX_DOWNLOAD_TOKEN_HERE",
+          "RNMapboxMapsImpl": "mapbox"
+        }
+      ],
       [
         "expo-splash-screen",
         {
