@@ -1,5 +1,6 @@
-import { useProfileStore } from "../stores/profileStore";
+import { useProfileStore } from "@/stores/profileStore";
 import { useSupabase } from "./useSupabase";
+import { parsePostGISPoint } from "@/utils/parsePostGISPoint";
 import {
   GetFriendIdsInput,
   GetFriendsOutput,
@@ -17,27 +18,9 @@ import {
   FriendshipWithProfiles,
   Friend,
   FriendshipStatus,
-} from "../types/friendship";
-
-// GeoJSON types for Mapbox
-export interface GeoJSONFeature {
-  type: "Feature";
-  geometry: {
-    type: "Point";
-    coordinates: [number, number]; // [longitude, latitude]
-  };
-  properties: {
-    id: string;
-    name: string;
-    type: "friend" | "mutual";
-    avatar_url?: string;
-  };
-}
-
-export interface GeoJSONFeatureCollection {
-  type: "FeatureCollection";
-  features: GeoJSONFeature[];
-}
+  GeoJSONFeature,
+  GeoJSONFeatureCollection,
+} from "@/types/friendship";
 
 export const useFriends = () => {
   const { isLoaded, supabase } = useSupabase();
@@ -45,45 +28,10 @@ export const useFriends = () => {
 
   //––––– HELPERS –––––
 
-  /**
-   * Orders two user IDs consistently (alphabetically) to ensure
-   * the same user_a and user_b regardless of operation direction.
-   * This maintains the invariant that user_a < user_b in the friendships table.
-   */
   const orderUserIds = (userId1: string, userId2: string): [string, string] => {
     return userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
   };
 
-  /**
-   * Parses PostGIS POINT format to [longitude, latitude]
-   * PostGIS format: "POINT(longitude latitude)" or "(longitude,latitude)"
-   */
-  const parsePostGISPoint = (location: string): [number, number] | null => {
-    try {
-      // Handle WKT format: "POINT(longitude latitude)"
-      const wktMatch = location.match(
-        /POINT\s*\(\s*([+-]?\d+\.?\d*)\s+([+-]?\d+\.?\d*)\s*\)/i
-      );
-      if (wktMatch) {
-        return [parseFloat(wktMatch[1]), parseFloat(wktMatch[2])];
-      }
-
-      // // Handle tuple format: "(longitude,latitude)"
-      // const tupleMatch = location.match(/\(\s*([+-]?\d+\.?\d*)\s*,\s*([+-]?\d+\.?\d*)\s*\)/);
-      // if (tupleMatch) {
-      //   return [parseFloat(tupleMatch[1]), parseFloat(tupleMatch[2])];
-      // }
-
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  /**
-   * Converts an array of Friends to GeoJSON FeatureCollection for Mapbox
-   * Filters out friends without valid location data
-   */
   const friendsToGeoJSON = (
     friends: Friend[],
     type: "friend" | "mutual"
@@ -128,27 +76,14 @@ export const useFriends = () => {
     }
   };
 
-  /**
-   * Friendship status constants for type-safe status checks
-   */
-  const FRIENDSHIP_STATUS = {
-    PENDING: FriendshipStatus.PENDING,
-    ACCEPTED: FriendshipStatus.ACCEPTED,
-    DECLINED: FriendshipStatus.DECLINED,
-  } as const;
-
   // ––– QUERIES –––
 
   const getFriendIds = async (input: GetFriendIdsInput): Promise<string[]> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
     const { targetUserId } = input;
     const { data, error } = await supabase
       .from("friendships")
       .select("user_a, user_b")
-      .eq("status", FRIENDSHIP_STATUS.ACCEPTED)
+      .eq("status", FriendshipStatus.ACCEPTED)
       .or(`user_a.eq.${targetUserId},user_b.eq.${targetUserId}`);
 
     if (error) throw error;
@@ -159,15 +94,7 @@ export const useFriends = () => {
   };
 
   const getFriends = async (): Promise<GetFriendsOutput> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
-    const userId = profileState.id;
+    const userId = profileState!.id;
 
     const { data, error } = await supabase
       .from("friendships")
@@ -182,7 +109,7 @@ export const useFriends = () => {
         `
       )
       .or(`user_a.eq.${userId},user_b.eq.${userId}`)
-      .eq("status", FRIENDSHIP_STATUS.ACCEPTED);
+      .eq("status", FriendshipStatus.ACCEPTED);
 
     if (error) throw error;
 
@@ -194,15 +121,7 @@ export const useFriends = () => {
   };
 
   const getFriendsOfFriends = async (): Promise<GetFriendsOfFriendsOutput> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
-    const userId = profileState.id;
+    const userId = profileState!.id;
 
     const { data, error } = await supabase
       .from("friends_of_friends_profiles_v")
@@ -217,17 +136,9 @@ export const useFriends = () => {
   const getMutuals = async (
     input: GetMutualsInput
   ): Promise<GetMutualsOutput> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
     // Get my friend IDs and target's friend IDs in parallel
     const [myFriendIds, targetFriendIds] = await Promise.all([
-      getFriendIds({ targetUserId: profileState.id }),
+      getFriendIds({ targetUserId: profileState!.id }),
       getFriendIds({ targetUserId: input.targetUserId }),
     ]);
 
@@ -240,14 +151,6 @@ export const useFriends = () => {
    * for displaying on a map. Friends and mutuals are marked with different types.
    */
   const getFriendLocations = async (): Promise<GeoJSONFeatureCollection> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
     // Fetch friends and mutuals in parallel
     const [friendsResult, mutualsResult] = await Promise.all([
       getFriends(),
@@ -270,16 +173,8 @@ export const useFriends = () => {
   const sendFriendRequest = async (
     input: SendFriendRequestInput
   ): Promise<SendFriendRequestOutput> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
     const { targetUserId } = input;
-    const userId = profileState.id;
+    const userId = profileState!.id;
 
     validateFriendRequest(userId, targetUserId);
 
@@ -291,7 +186,7 @@ export const useFriends = () => {
         user_a,
         user_b,
         requested_by: userId,
-        status: FRIENDSHIP_STATUS.PENDING,
+        status: FriendshipStatus.PENDING,
         accepted_at: null,
       })
       .select()
@@ -304,27 +199,19 @@ export const useFriends = () => {
   const acceptFriendRequest = async (
     input: AcceptFriendRequestInput
   ): Promise<AcceptFriendRequestOutput> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
     const { fromUserId } = input;
-    const userId = profileState.id;
+    const userId = profileState!.id;
     const [user_a, user_b] = orderUserIds(userId, fromUserId);
 
     const { data, error } = await supabase
       .from("friendships")
       .update({
-        status: FRIENDSHIP_STATUS.ACCEPTED,
+        status: FriendshipStatus.ACCEPTED,
         accepted_at: new Date().toISOString(),
       })
       .eq("user_a", user_a)
       .eq("user_b", user_b)
-      .eq("status", FRIENDSHIP_STATUS.PENDING)
+      .eq("status", FriendshipStatus.PENDING)
       .neq("requested_by", userId)
       .select()
       .single();
@@ -336,38 +223,22 @@ export const useFriends = () => {
   const declineFriendRequest = async (
     input: DeclineFriendRequestInput
   ): Promise<void> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
-    const userId = profileState.id;
+    const userId = profileState!.id;
     const { targetUserId } = input;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
     const { error } = await supabase
       .from("friendships")
-      .update({ status: FRIENDSHIP_STATUS.DECLINED, accepted_at: null })
+      .update({ status: FriendshipStatus.DECLINED, accepted_at: null })
       .eq("user_a", user_a)
       .eq("user_b", user_b)
-      .eq("status", FRIENDSHIP_STATUS.PENDING);
+      .eq("status", FriendshipStatus.PENDING);
 
     if (error) throw error;
   };
 
   const unfriend = async (input: UnfriendInput): Promise<void> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
-    if (!profileState) {
-      throw new Error("Profile not loaded");
-    }
-
-    const userId = profileState.id;
+    const userId = profileState!.id;
     const { targetUserId } = input;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
@@ -376,7 +247,7 @@ export const useFriends = () => {
       .delete()
       .eq("user_a", user_a)
       .eq("user_b", user_b)
-      .eq("status", FRIENDSHIP_STATUS.ACCEPTED);
+      .eq("status", FriendshipStatus.ACCEPTED);
 
     if (error) throw error;
   };
@@ -384,10 +255,6 @@ export const useFriends = () => {
   const createFriend = async (
     input: CreateFriendInput
   ): Promise<CreateFriendOutput> => {
-    if (!isLoaded) {
-      throw new Error("Supabase not initialized");
-    }
-
     const { currentUserId, targetUserId } = input;
 
     validateFriendRequest(currentUserId, targetUserId);
@@ -400,7 +267,7 @@ export const useFriends = () => {
         user_a,
         user_b,
         requested_by: targetUserId,
-        status: FRIENDSHIP_STATUS.ACCEPTED,
+        status: FriendshipStatus.ACCEPTED,
         accepted_at: new Date().toISOString(),
       })
       .select()

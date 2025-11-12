@@ -84,3 +84,23 @@ export interface CreateFriendInput {
 export interface CreateFriendOutput {
   data: Friendship;
 }
+
+// GeoJSON types for Mapbox
+export interface GeoJSONFeature {
+  type: "Feature";
+  geometry: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  properties: {
+    id: string;
+    name: string;
+    type: "friend" | "mutual";
+    avatar_url?: string;
+  };
+}
+
+export interface GeoJSONFeatureCollection {
+  type: "FeatureCollection";
+  features: GeoJSONFeature[];
+}

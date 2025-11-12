@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  RefreshControl,
-  ScrollView,
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
 import Mapbox, { Camera, ShapeSource, SymbolLayer } from "@rnmapbox/maps";
 import { useFriends } from "@/hooks/useFriends";
 import { GeoJSONFeatureCollection } from "@/types/friendship";
@@ -26,7 +18,10 @@ interface MapViewProps {
   refreshing?: boolean;
 }
 
-const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
+export const MapView: React.FC<MapViewProps> = ({
+  onRefresh,
+  refreshing = false,
+}) => {
   const { getFriendLocations } = useFriends();
   const { updateLocation } = useProfile();
   const {
@@ -62,7 +57,6 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
       setFriendLocations(locations);
     } catch (err) {
       console.error("Error loading friend locations:", err);
-      setError(err as string);
     } finally {
       setLoading(false);
     }
@@ -84,7 +78,7 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
 
   if (loading) {
     return (
-      <View style={mapStyles.centerContainer}>
+      <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#9333ea" />
       </View>
     );
@@ -92,16 +86,16 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
 
   if (error || locationError) {
     return (
-      <View style={mapStyles.centerContainer}>
-        <Text style={mapStyles.errorText}>{error || locationError}</Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error || locationError}</Text>
       </View>
     );
   }
 
   return (
-    <View style={mapStyles.container}>
+    <View style={styles.container}>
       <Mapbox.MapView
-        style={mapStyles.map}
+        style={styles.map}
         styleURL={Mapbox.StyleURL.Street}
         compassViewPosition={3}
         scaleBarEnabled={false}
@@ -117,8 +111,8 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
         {/* User location marker */}
         {userLocation && (
           <Mapbox.PointAnnotation id="user-location" coordinate={userLocation}>
-            <View style={mapStyles.userMarker}>
-              <View style={mapStyles.userMarkerInner} />
+            <View style={styles.userMarker}>
+              <View style={styles.userMarkerInner} />
             </View>
           </Mapbox.PointAnnotation>
         )}
@@ -191,7 +185,7 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
   );
 };
 
-const mapStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -227,33 +221,3 @@ const mapStyles = StyleSheet.create({
     backgroundColor: "#9333ea", // purple-600
   },
 });
-
-export default function Page() {
-  const insets = useSafeAreaInsets();
-  const [refreshing, setRefreshing] = useState(false);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-  };
-
-  const onRefreshComplete = () => {
-    setRefreshing(false);
-  };
-
-  return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
-      <ScrollView
-        contentContainerStyle={{ flex: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#9333ea"
-          />
-        }
-      >
-        <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
-      </ScrollView>
-    </View>
-  );
-}
