@@ -30,7 +30,6 @@ const vibeSchema = z.object({
 type VibeForm = z.infer<typeof vibeSchema>;
 
 export default function SendInvitesPage() {
-  // router.replace("/(protected)/(tabs)");
   const { signupData } = useSignupStore();
   const { profileState, updateProfile } = useProfile();
   const { createVibe } = useVibe();
