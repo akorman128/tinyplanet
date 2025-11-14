@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Mapbox, { Camera, ShapeSource, SymbolLayer } from "@rnmapbox/maps";
 import { useFriends } from "@/hooks/useFriends";
 import { GeoJSONFeatureCollection } from "@/types/friendship";
-import { useProfile } from "@/hooks/useProfile";
 import { useLocation } from "@/hooks/useLocation";
 
 // Set Mapbox access token
@@ -28,11 +27,10 @@ interface MapViewProps {
 
 const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
   const { getFriendLocations } = useFriends();
-  const { updateLocation } = useProfile();
   const {
     location: userLocationObj,
     getCurrentLocation,
-    error: locationError,
+    updateLocationInDatabase,
   } = useLocation();
 
   const [friendLocations, setFriendLocations] =
@@ -55,7 +53,7 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
       await getCurrentLocation();
 
       // Update user's location in the database
-      await updateLocation();
+      await updateLocationInDatabase();
 
       // Fetch friend and mutual locations
       const locations = await getFriendLocations();
@@ -66,7 +64,7 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
     } finally {
       setLoading(false);
     }
-  }, [getFriendLocations, updateLocation, getCurrentLocation]);
+  }, [getFriendLocations, updateLocationInDatabase, getCurrentLocation]);
 
   // Initial load
   useEffect(() => {
@@ -90,10 +88,10 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
     );
   }
 
-  if (error || locationError) {
+  if (error) {
     return (
       <View style={mapStyles.centerContainer}>
-        <Text style={mapStyles.errorText}>{error || locationError}</Text>
+        <Text style={mapStyles.errorText}>{error}</Text>
       </View>
     );
   }

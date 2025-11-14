@@ -1,8 +1,7 @@
 import { useCallback } from "react";
-import { Profile } from "../types/profile";
-import { useProfileStore } from "../stores/profileStore";
+import { Profile } from "@/types/profile";
+import { useProfileStore } from "@/stores/profileStore";
 import { useSupabase } from "./useSupabase";
-import * as Location from "expo-location";
 
 export const useProfile = () => {
   const { isLoaded, supabase } = useSupabase();
@@ -163,36 +162,11 @@ export const useProfile = () => {
     [supabase, profileState, setProfileState]
   );
 
-  const updateLocation = useCallback(async (): Promise<Profile | undefined> => {
-    // Check if we have location permissions
-    const { status } = await Location.getForegroundPermissionsAsync();
-
-    if (status !== "granted") {
-      // Don't throw error, just silently skip location update if permission not granted
-      console.error(
-        "Location permission not granted, skipping location update"
-      );
-      return;
-    }
-
-    // Get current location
-    const location = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-
-    const { longitude, latitude } = location.coords;
-
-    return updateProfile({
-      updateData: { location: `POINT(${longitude} ${latitude})` },
-    });
-  }, [profileState, updateProfile]);
-
   return {
     isLoaded,
     profileState,
     getProfile,
     createProfile,
     updateProfile,
-    updateLocation,
   };
 };

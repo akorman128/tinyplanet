@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import * as Location from "expo-location";
+import { useSupabase } from "./useSupabase";
+import { useProfileStore } from "../stores/profileStore";
 
 export interface LocationCoordinates {
   latitude: number;
@@ -14,6 +16,7 @@ export interface UseLocationReturn {
   requestPermission: () => Promise<boolean>;
   getCurrentLocation: () => Promise<LocationCoordinates | null>;
   refreshLocation: () => Promise<void>;
+  updateLocationInDatabase: () => Promise<void>;
 }
 
 /**
@@ -21,6 +24,8 @@ export interface UseLocationReturn {
  * Centralizes all location-related functionality
  */
 export const useLocation = (): UseLocationReturn => {
+  const { supabase } = useSupabase();
+  const { profileState, setProfileState } = useProfileStore();
   const [location, setLocation] = useState<LocationCoordinates | null>(null);
   const [permissionStatus, setPermissionStatus] =
     useState<Location.PermissionStatus | null>(null);
@@ -111,6 +116,62 @@ export const useLocation = (): UseLocationReturn => {
     await getCurrentLocation();
   }, [getCurrentLocation]);
 
+  /**
+   * Update the user's location in the database
+   * Requests permission if not already granted, then updates the profile location
+   */
+  const updateLocationInDatabase = useCallback(async (): Promise<void> => {
+    if (!profileState) {
+      console.error("No profile loaded, skipping location update");
+      return;
+    }
+
+    try {
+      // Request location permissions if not already granted
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== Location.PermissionStatus.GRANTED) {
+        console.error(
+          "Location permission not granted, skipping location update"
+        );
+        return;
+      }
+
+      // Get current location
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const { longitude, latitude } = position.coords;
+
+      // Update location in database
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({
+          location: `POINT(${longitude} ${latitude})`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profileState.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Failed to update location in database:", error.message);
+        return;
+      }
+
+      // Update profile state with new location
+      if (data) {
+        setProfileState(data);
+      }
+
+      // Also update local location state
+      setLocation({ latitude, longitude });
+    } catch (err) {
+      console.error("Error updating location in database:", err);
+    }
+  }, [profileState, supabase, setProfileState]);
+
   return {
     location,
     permissionStatus,
@@ -119,5 +180,6 @@ export const useLocation = (): UseLocationReturn => {
     requestPermission,
     getCurrentLocation,
     refreshLocation,
+    updateLocationInDatabase,
   };
 };

@@ -1,7 +1,7 @@
 import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "./useProfile";
-import * as Location from "expo-location";
+import { useLocation } from "./useLocation";
 
 interface signInWithPhoneNumberDto {
   phone: string;
@@ -19,12 +19,13 @@ interface verifyOtpDto {
 
 export const useSignIn = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { getProfile, updateLocation } = useProfile();
+  const { getProfile } = useProfile();
+  const { updateLocationInDatabase } = useLocation();
   const { setProfileState } = useProfileStore();
 
   const updateUserLocation = async (): Promise<void> => {
     try {
-      await updateLocation();
+      await updateLocationInDatabase();
     } catch (error) {
       console.error("Failed to update location on sign-in:", error);
     }

@@ -3,7 +3,6 @@ import { View, ActivityIndicator, StyleSheet, Text } from "react-native";
 import Mapbox, { Camera, ShapeSource, SymbolLayer } from "@rnmapbox/maps";
 import { useFriends } from "@/hooks/useFriends";
 import { GeoJSONFeatureCollection } from "@/types/friendship";
-import { useProfile } from "@/hooks/useProfile";
 import { useLocation } from "@/hooks/useLocation";
 
 // Set Mapbox access token
@@ -23,10 +22,10 @@ export const MapView: React.FC<MapViewProps> = ({
   refreshing = false,
 }) => {
   const { getFriendLocations } = useFriends();
-  const { updateLocation } = useProfile();
   const {
     location: userLocationObj,
     getCurrentLocation,
+    updateLocationInDatabase,
     error: locationError,
   } = useLocation();
 
@@ -50,7 +49,7 @@ export const MapView: React.FC<MapViewProps> = ({
       await getCurrentLocation();
 
       // Update user's location in the database
-      await updateLocation();
+      await updateLocationInDatabase();
 
       // Fetch friend and mutual locations
       const locations = await getFriendLocations();
@@ -60,7 +59,7 @@ export const MapView: React.FC<MapViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [getFriendLocations, updateLocation, getCurrentLocation]);
+  }, [getFriendLocations, updateLocationInDatabase, getCurrentLocation]);
 
   // Initial load
   useEffect(() => {
