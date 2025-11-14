@@ -5,13 +5,6 @@ import { useFriends } from "@/hooks/useFriends";
 import { GeoJSONFeatureCollection } from "@/types/friendship";
 import { useLocation } from "@/hooks/useLocation";
 
-// Set Mapbox access token
-const MAPBOX_ACCESS_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
-if (MAPBOX_ACCESS_TOKEN) {
-  Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
-}
-
 interface MapViewProps {
   onRefresh?: () => void;
   refreshing?: boolean;

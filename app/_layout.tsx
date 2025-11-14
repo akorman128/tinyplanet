@@ -5,7 +5,11 @@ import * as SplashScreen from "expo-splash-screen";
 
 import { useSupabase } from "@/hooks/useSupabase";
 import { SupabaseProvider } from "../providers/supabase-provider";
+import { initializeMapbox } from "@/utils/mapboxConfig";
 import "../global.css";
+
+// Initialize Mapbox once at app startup
+initializeMapbox();
 
 SplashScreen.setOptions({
   duration: 500,
