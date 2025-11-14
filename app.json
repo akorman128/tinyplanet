@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "tiny-planet",
-    "slug": "tiny-planet",
+    "name": "tinyplanet",
+    "slug": "tinyplanet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -11,7 +11,7 @@
     "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.alexkorman.tiny-planet",
+      "bundleIdentifier": "com.alexkorman.tinyplanet",
       "infoPlist": {
         "NSContactsUsageDescription": "We need access to your contacts so you can easily invite friends to Tiny Planet.",
         "NSLocationWhenInUseUsageDescription": "We need your location to show you on the map with your friends.",
@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.alexkorman.tiny-planet",
+      "package": "com.alexkorman.tinyplanet",
       "permissions": [
         "READ_CONTACTS",
         "ACCESS_FINE_LOCATION",
@@ -38,7 +38,7 @@
       [
         "@rnmapbox/maps",
         {
-          "RNMapboxMapsDownloadToken": "YOUR_MAPBOX_DOWNLOAD_TOKEN_HERE",
+          "RNMAPBOX_MAPS_DOWNLOAD_TOKEN": "sk.eyJ1IjoiYWtvcjEyOCIsImEiOiJjbWh5Z2ZrajQwMW12MmlxNWIwd2dybzRmIn0.eJ7f_Xl0IG4mum-wKrybnQ",
           "RNMapboxMapsImpl": "mapbox"
         }
       ],

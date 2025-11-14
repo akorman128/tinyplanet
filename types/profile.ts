@@ -8,6 +8,6 @@ export interface Profile {
   location: string;
   phone_number: string;
   onboarding_invites_sent?: boolean;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
 }
