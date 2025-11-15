@@ -37,25 +37,28 @@ const MapView: React.FC<MapViewProps> = React.memo(({ onRefresh, refreshing = fa
     ? [userLocationObj.longitude, userLocationObj.latitude]
     : null;
 
-  // Load friend locations
-  const loadFriendLocations = useCallback(async () => {
-    try {
-      setError(null);
+  // Load friend locations with smart caching
+  const loadFriendLocations = useCallback(
+    async (forceRefresh: boolean = false) => {
+      try {
+        setError(null);
 
-      // Get user's current location
-      await getCurrentLocation();
+        // Get user's current location (uses cache if not stale, unless forcing refresh)
+        await getCurrentLocation(forceRefresh);
 
-      // Update user's location in the database
-      await updateLocationInDatabase();
+        // Update user's location in the database (applies distance threshold internally)
+        await updateLocationInDatabase(forceRefresh);
 
-      // Fetch friend and mutual locations
-      const locations = await getFriendLocations();
-      setFriendLocations(locations);
-    } catch (err) {
-      console.error("Error loading friend locations:", err);
-      setError(err as string);
-    }
-  }, [getFriendLocations, updateLocationInDatabase, getCurrentLocation]);
+        // Fetch friend and mutual locations
+        const locations = await getFriendLocations();
+        setFriendLocations(locations);
+      } catch (err) {
+        console.error("Error loading friend locations:", err);
+        setError(err as string);
+      }
+    },
+    [getFriendLocations, updateLocationInDatabase, getCurrentLocation]
+  );
 
   // Initial load
   useEffect(() => {
@@ -67,16 +70,16 @@ const MapView: React.FC<MapViewProps> = React.memo(({ onRefresh, refreshing = fa
     initialLoad();
   }, []);
 
-  // Handle refresh
+  // Handle manual refresh - force fresh location
   useEffect(() => {
     if (refreshing && !isRefreshing) {
       setIsRefreshing(true);
-      loadFriendLocations().finally(() => {
+      loadFriendLocations(true).finally(() => {
         setIsRefreshing(false);
         onRefresh?.();
       });
     }
-  }, [refreshing]);
+  }, [refreshing, isRefreshing, loadFriendLocations, onRefresh]);
 
   if (loading) {
     return (
