@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import * as Location from "expo-location";
 import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "../stores/profileStore";
+import { useLocationStore } from "../stores/locationStore";
 
 export interface LocationCoordinates {
   latitude: number;
@@ -11,12 +12,14 @@ export interface LocationCoordinates {
 export interface UseLocationReturn {
   location: LocationCoordinates | null;
   permissionStatus: Location.PermissionStatus | null;
+  permissionRequired: boolean;
   isLoading: boolean;
   error: string | null;
   requestPermission: () => Promise<boolean>;
-  getCurrentLocation: () => Promise<LocationCoordinates | null>;
+  getCurrentLocation: () => Promise<LocationCoordinates>;
   refreshLocation: () => Promise<void>;
   updateLocationInDatabase: () => Promise<void>;
+  checkPermissionStatus: () => Promise<void>;
 }
 
 /**
@@ -26,11 +29,41 @@ export interface UseLocationReturn {
 export const useLocation = (): UseLocationReturn => {
   const { supabase } = useSupabase();
   const { profileState, setProfileState } = useProfileStore();
+  const {
+    permissionRequired,
+    hasBeenGranted,
+    lastPermissionStatus,
+    setPermissionStatus: setStoredPermissionStatus,
+    markPermissionGranted,
+    requirePermission,
+  } = useLocationStore();
   const [location, setLocation] = useState<LocationCoordinates | null>(null);
   const [permissionStatus, setPermissionStatus] =
     useState<Location.PermissionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Check if location permissions have been revoked
+   * Updates the store if revocation is detected
+   */
+  const checkPermissionStatus = useCallback(async (): Promise<void> => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      setPermissionStatus(status);
+      setStoredPermissionStatus(status);
+
+      // If permission was previously granted but is now revoked, flag it
+      if (
+        hasBeenGranted &&
+        status !== Location.PermissionStatus.GRANTED
+      ) {
+        requirePermission();
+      }
+    } catch (err) {
+      console.error("Error checking permission status:", err);
+    }
+  }, [hasBeenGranted, setStoredPermissionStatus, requirePermission]);
 
   /**
    * Request location permission from the user
@@ -45,8 +78,10 @@ export const useLocation = (): UseLocationReturn => {
       const { status: existingStatus } =
         await Location.getForegroundPermissionsAsync();
       setPermissionStatus(existingStatus);
+      setStoredPermissionStatus(existingStatus);
 
       if (existingStatus === Location.PermissionStatus.GRANTED) {
+        markPermissionGranted();
         setIsLoading(false);
         return true;
       }
@@ -54,6 +89,7 @@ export const useLocation = (): UseLocationReturn => {
       // Request permission if not granted
       const { status } = await Location.requestForegroundPermissionsAsync();
       setPermissionStatus(status);
+      setStoredPermissionStatus(status);
       setIsLoading(false);
 
       if (status !== Location.PermissionStatus.GRANTED) {
@@ -61,6 +97,7 @@ export const useLocation = (): UseLocationReturn => {
         return false;
       }
 
+      markPermissionGranted();
       return true;
     } catch (err) {
       console.error("Error requesting location permission:", err);
@@ -68,23 +105,26 @@ export const useLocation = (): UseLocationReturn => {
       setIsLoading(false);
       return false;
     }
-  }, []);
+  }, [setStoredPermissionStatus, markPermissionGranted]);
 
   /**
    * Get current location coordinates
-   * Automatically requests permission if not already granted
+   * Assumes permission has already been granted (required during signup)
+   * Throws error if permission is not granted
    */
   const getCurrentLocation =
-    useCallback(async (): Promise<LocationCoordinates | null> => {
+    useCallback(async (): Promise<LocationCoordinates> => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Check and request permission if needed
-        const hasPermission = await requestPermission();
-        if (!hasPermission) {
+        // Verify permission is granted
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== Location.PermissionStatus.GRANTED) {
           setIsLoading(false);
-          return null;
+          throw new Error(
+            "Location permission not granted. This should not happen as permission is required during signup."
+          );
         }
 
         // Get current position
@@ -102,11 +142,13 @@ export const useLocation = (): UseLocationReturn => {
         return coords;
       } catch (err) {
         console.error("Error getting current location:", err);
-        setError("Failed to get current location");
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to get current location";
+        setError(errorMessage);
         setIsLoading(false);
-        return null;
+        throw err;
       }
-    }, [requestPermission]);
+    }, []);
 
   /**
    * Refresh the current location
@@ -175,11 +217,13 @@ export const useLocation = (): UseLocationReturn => {
   return {
     location,
     permissionStatus,
+    permissionRequired,
     isLoading,
     error,
     requestPermission,
     getCurrentLocation,
     refreshLocation,
     updateLocationInDatabase,
+    checkPermissionStatus,
   };
 };

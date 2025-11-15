@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  RefreshControl,
-  ScrollView,
   ActivityIndicator,
   StyleSheet,
   Text,
+  TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Mapbox, { Camera, ShapeSource, SymbolLayer } from "@rnmapbox/maps";
 import { useFriends } from "@/hooks/useFriends";
 import { GeoJSONFeatureCollection } from "@/types/friendship";
 import { useLocation } from "@/hooks/useLocation";
+import { Ionicons } from "@expo/vector-icons";
 
 interface MapViewProps {
   onRefresh?: () => void;
   refreshing?: boolean;
 }
 
-const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
+const MapView: React.FC<MapViewProps> = React.memo(({ onRefresh, refreshing = false }) => {
   const { getFriendLocations } = useFriends();
   const {
     location: userLocationObj,
@@ -30,6 +30,7 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
     useState<GeoJSONFeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Convert user location object to [longitude, latitude] tuple for Mapbox
   const userLocation: [number, number] | null = userLocationObj
@@ -39,7 +40,6 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
   // Load friend locations
   const loadFriendLocations = useCallback(async () => {
     try {
-      setLoading(true);
       setError(null);
 
       // Get user's current location
@@ -54,24 +54,29 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
     } catch (err) {
       console.error("Error loading friend locations:", err);
       setError(err as string);
-    } finally {
-      setLoading(false);
     }
   }, [getFriendLocations, updateLocationInDatabase, getCurrentLocation]);
 
   // Initial load
   useEffect(() => {
-    loadFriendLocations();
-  }, [loadFriendLocations]);
+    const initialLoad = async () => {
+      setLoading(true);
+      await loadFriendLocations();
+      setLoading(false);
+    };
+    initialLoad();
+  }, []);
 
   // Handle refresh
   useEffect(() => {
-    if (refreshing) {
-      loadFriendLocations().then(() => {
+    if (refreshing && !isRefreshing) {
+      setIsRefreshing(true);
+      loadFriendLocations().finally(() => {
+        setIsRefreshing(false);
         onRefresh?.();
       });
     }
-  }, [refreshing, loadFriendLocations, onRefresh]);
+  }, [refreshing]);
 
   if (loading) {
     return (
@@ -97,20 +102,17 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
         compassViewPosition={3}
         scaleBarEnabled={false}
       >
-        {userLocation && (
-          <Camera
-            zoomLevel={12}
-            centerCoordinate={userLocation}
-            animationDuration={1000}
-          />
-        )}
+        <Camera
+          zoomLevel={12}
+          centerCoordinate={userLocation || [0, 0]}
+          animationDuration={1000}
+          animationMode="flyTo"
+        />
 
         {/* User location marker */}
         {userLocation && (
           <Mapbox.PointAnnotation id="user-location" coordinate={userLocation}>
-            <View style={mapStyles.userMarker}>
-              <View style={mapStyles.userMarkerInner} />
-            </View>
+            <View style={mapStyles.userMarker} />
           </Mapbox.PointAnnotation>
         )}
 
@@ -180,7 +182,7 @@ const MapView: React.FC<MapViewProps> = ({ onRefresh, refreshing = false }) => {
       </Mapbox.MapView>
     </View>
   );
-};
+});
 
 const mapStyles = StyleSheet.create({
   container: {
@@ -205,17 +207,9 @@ const mapStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: "#ffffff",
-    borderWidth: 3,
-    borderColor: "#9333ea", // purple-600
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  userMarkerInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
     backgroundColor: "#9333ea", // purple-600
+    borderWidth: 3,
+    borderColor: "#ffffff",
   },
 });
 
@@ -233,18 +227,37 @@ export default function Page() {
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top }}>
-      <ScrollView
-        contentContainerStyle={{ flex: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor="#9333ea"
-          />
-        }
+      <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
+      <TouchableOpacity
+        style={pageStyles.refreshButton}
+        onPress={handleRefresh}
+        disabled={refreshing}
       >
-        <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
-      </ScrollView>
+        {refreshing ? (
+          <ActivityIndicator size="small" color="#ffffff" />
+        ) : (
+          <Ionicons name="refresh" size={24} color="#ffffff" />
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
+
+const pageStyles = StyleSheet.create({
+  refreshButton: {
+    position: "absolute",
+    top: 20,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#9333ea",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+});

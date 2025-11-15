@@ -51,7 +51,7 @@ export function OtpVerificationScreen({
     if (!isLoaded) return;
 
     try {
-      await onVerifyOtp(phone || "", data.otp);
+      await onVerifyOtp(phone, data.otp);
       // Navigation will be handled automatically after successful verification
       // as the auth state changes
     } catch (err) {
@@ -59,22 +59,6 @@ export function OtpVerificationScreen({
         type: "manual",
         message: "Invalid verification code. Please try again.",
       });
-    }
-  };
-
-  const onResendPress = async () => {
-    if (!isLoaded || !phone) return;
-
-    if (onResendCode) {
-      try {
-        await onResendCode(phone);
-        // Show success feedback (you might want to add a toast here)
-      } catch (err) {
-        console.error("Failed to resend code:", err);
-      }
-    } else {
-      // Navigate back to resend the code
-      router.back();
     }
   };
 

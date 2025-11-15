@@ -4,7 +4,11 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 import { useSupabase } from "@/hooks/useSupabase";
+import { useLocation } from "@/hooks/useLocation";
+import { useLocationStore } from "@/stores/locationStore";
 import { SupabaseProvider } from "../providers/supabase-provider";
+import { LocationPermissionProvider } from "../providers/LocationPermissionProvider";
+import { LocationPermissionScreen } from "@/components/LocationPermissionScreen";
 import { initializeMapbox } from "@/utils/mapboxConfig";
 import "../global.css";
 
@@ -21,19 +25,36 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   return (
     <SupabaseProvider>
-      <RootNavigator />
+      <LocationPermissionProvider>
+        <RootNavigator />
+      </LocationPermissionProvider>
     </SupabaseProvider>
   );
 }
 
 function RootNavigator() {
   const { isLoaded, session } = useSupabase();
+  const { permissionRequired } = useLocation();
+  const { clearPermissionRequirement } = useLocationStore();
 
   useEffect(() => {
     if (isLoaded) {
       SplashScreen.hide();
     }
   }, [isLoaded]);
+
+  // Show blocking permission screen if permissions were revoked and user is logged in
+  if (permissionRequired && session) {
+    return (
+      <LocationPermissionScreen
+        context="app-resume"
+        onSuccess={(coords) => {
+          console.log("Location permission re-granted:", coords);
+          clearPermissionRequirement();
+        }}
+      />
+    );
+  }
 
   return (
     <Stack
