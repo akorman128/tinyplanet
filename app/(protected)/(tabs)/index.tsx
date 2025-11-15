@@ -54,7 +54,8 @@ const MapView: React.FC<MapViewProps> = React.memo(({ onRefresh, refreshing = fa
         setFriendLocations(locations);
       } catch (err) {
         console.error("Error loading friend locations:", err);
-        setError(err as string);
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        setError(errorMessage);
       }
     },
     [getFriendLocations, updateLocationInDatabase, getCurrentLocation]

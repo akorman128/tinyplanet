@@ -1,6 +1,5 @@
 import { useProfileStore } from "@/stores/profileStore";
 import { useSupabase } from "./useSupabase";
-import { parsePostGISPoint } from "@/utils/parsePostGISPoint";
 import {
   GetFriendIdsInput,
   GetFriendsOutput,
@@ -30,38 +29,6 @@ export const useFriends = () => {
 
   const orderUserIds = (userId1: string, userId2: string): [string, string] => {
     return userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
-  };
-
-  const friendsToGeoJSON = (
-    friends: Friend[],
-    type: "friend" | "mutual"
-  ): GeoJSONFeatureCollection => {
-    const features = friends
-      .filter((friend) => friend.location)
-      .map((friend) => {
-        const coordinates = parsePostGISPoint(friend.location!);
-        if (!coordinates) return null;
-
-        return {
-          type: "Feature" as const,
-          geometry: {
-            type: "Point" as const,
-            coordinates,
-          },
-          properties: {
-            id: friend.id,
-            name: friend.full_name,
-            type,
-            avatar_url: friend.avatar_url,
-          },
-        } as GeoJSONFeature;
-      })
-      .filter((feature): feature is GeoJSONFeature => feature !== null);
-
-    return {
-      type: "FeatureCollection",
-      features,
-    };
   };
 
   /**
@@ -94,7 +61,11 @@ export const useFriends = () => {
   };
 
   const getFriends = async (): Promise<GetFriendsOutput> => {
-    const userId = profileState!.id;
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot fetch friends");
+    }
+
+    const userId = profileState.id;
 
     const { data, error } = await supabase
       .from("friendships")
@@ -121,7 +92,11 @@ export const useFriends = () => {
   };
 
   const getFriendsOfFriends = async (): Promise<GetFriendsOfFriendsOutput> => {
-    const userId = profileState!.id;
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot fetch friends of friends");
+    }
+
+    const userId = profileState.id;
 
     const { data, error } = await supabase
       .from("friends_of_friends_profiles_v")
@@ -136,9 +111,13 @@ export const useFriends = () => {
   const getMutuals = async (
     input: GetMutualsInput
   ): Promise<GetMutualsOutput> => {
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot fetch mutuals");
+    }
+
     // Get my friend IDs and target's friend IDs in parallel
     const [myFriendIds, targetFriendIds] = await Promise.all([
-      getFriendIds({ targetUserId: profileState!.id }),
+      getFriendIds({ targetUserId: profileState.id }),
       getFriendIds({ targetUserId: input.targetUserId }),
     ]);
 
@@ -151,20 +130,43 @@ export const useFriends = () => {
    * for displaying on a map. Friends and mutuals are marked with different types.
    */
   const getFriendLocations = async (): Promise<GeoJSONFeatureCollection> => {
-    // Fetch friends and mutuals in parallel
-    const [friendsResult, mutualsResult] = await Promise.all([
-      getFriends(),
-      getFriendsOfFriends(),
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot fetch friend locations");
+    }
+
+    const userId = profileState.id;
+
+    // Call RPC functions to get friend and mutual locations with coordinates
+    const [
+      { data: friends, error: friendsError },
+      { data: mutuals, error: mutualsError },
+    ] = await Promise.all([
+      supabase.rpc("get_friend_locations", { p_user_id: userId }),
+      supabase.rpc("get_mutual_locations", { p_user_id: userId }),
     ]);
 
-    // Convert to GeoJSON with type markers
-    const friendFeatures = friendsToGeoJSON(friendsResult.data, "friend");
-    const mutualFeatures = friendsToGeoJSON(mutualsResult.data, "mutual");
+    if (friendsError) throw friendsError;
+    if (mutualsError) throw mutualsError;
 
-    // Combine both feature collections
+    // Convert to GeoJSON format
+    const allLocations = [...(friends || []), ...(mutuals || [])];
+    const features: GeoJSONFeature[] = allLocations.map((loc) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "Point" as const,
+        coordinates: [loc.longitude, loc.latitude],
+      },
+      properties: {
+        id: loc.id,
+        name: loc.full_name,
+        type: loc.type as "friend" | "mutual",
+        avatar_url: loc.avatar_url,
+      },
+    }));
+
     return {
       type: "FeatureCollection",
-      features: [...friendFeatures.features, ...mutualFeatures.features],
+      features,
     };
   };
 
@@ -173,8 +175,12 @@ export const useFriends = () => {
   const sendFriendRequest = async (
     input: SendFriendRequestInput
   ): Promise<SendFriendRequestOutput> => {
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot send friend request");
+    }
+
     const { targetUserId } = input;
-    const userId = profileState!.id;
+    const userId = profileState.id;
 
     validateFriendRequest(userId, targetUserId);
 
@@ -199,8 +205,12 @@ export const useFriends = () => {
   const acceptFriendRequest = async (
     input: AcceptFriendRequestInput
   ): Promise<AcceptFriendRequestOutput> => {
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot accept friend request");
+    }
+
     const { fromUserId } = input;
-    const userId = profileState!.id;
+    const userId = profileState.id;
     const [user_a, user_b] = orderUserIds(userId, fromUserId);
 
     const { data, error } = await supabase
@@ -223,7 +233,11 @@ export const useFriends = () => {
   const declineFriendRequest = async (
     input: DeclineFriendRequestInput
   ): Promise<void> => {
-    const userId = profileState!.id;
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot decline friend request");
+    }
+
+    const userId = profileState.id;
     const { targetUserId } = input;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
@@ -238,7 +252,11 @@ export const useFriends = () => {
   };
 
   const unfriend = async (input: UnfriendInput): Promise<void> => {
-    const userId = profileState!.id;
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot unfriend");
+    }
+
+    const userId = profileState.id;
     const { targetUserId } = input;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 

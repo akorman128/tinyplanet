@@ -23,21 +23,15 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     const [friendLocations, setFriendLocations] =
       useState<GeoJSONFeatureCollection | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Convert user location object to [longitude, latitude] tuple for Mapbox
-
     const userLocation: [number, number] = userLocationObj
       ? [userLocationObj.longitude, userLocationObj.latitude]
       : [0, 0];
 
-    console.log("userLocation", userLocation);
     // Load friend locations
     const loadFriendLocations = useCallback(async () => {
       try {
-        setError(null);
-
         // Get user's current location (force refresh to get actual device location)
         await getCurrentLocation(true);
 
@@ -46,7 +40,6 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
         // Fetch friend and mutual locations
         const locations = await getFriendLocations();
-        console.log("friend locations", locations);
         setFriendLocations(locations);
       } catch (err) {
         console.error("Error loading friend locations:", err);
@@ -61,18 +54,16 @@ export const MapView: React.FC<MapViewProps> = React.memo(
         setLoading(false);
       };
       initialLoad();
-    }, []);
+    }, [loadFriendLocations]);
 
     // Handle refresh
     useEffect(() => {
-      if (refreshing && !isRefreshing) {
-        setIsRefreshing(true);
+      if (refreshing) {
         loadFriendLocations().finally(() => {
-          setIsRefreshing(false);
           onRefresh?.();
         });
       }
-    }, [refreshing]);
+    }, [refreshing, loadFriendLocations, onRefresh]);
 
     if (loading) {
       return (
@@ -82,10 +73,10 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       );
     }
 
-    if (error || locationError) {
+    if (locationError) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error || locationError}</Text>
+          <Text style={styles.errorText}>{locationError}</Text>
         </View>
       );
     }
