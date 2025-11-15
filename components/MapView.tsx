@@ -27,23 +27,9 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Convert user location object to [longitude, latitude] tuple for Mapbox
-
-    const handleUserLocation = async () => {
-      if (!userLocationObj) {
-        const coords = await getCurrentLocation();
-
-        return [coords.longitude, coords.latitude];
-      }
-      return [userLocationObj.longitude, userLocationObj.latitude];
-    };
-
-    if (!userLocationObj) {
-      await getCurrentLocation();
-    }
-    const userLocation: [number, number] = [
-      userLocationObj.longitude,
-      userLocationObj.latitude,
-    ];
+    const userLocation: [number, number] | undefined = userLocationObj
+      ? [userLocationObj.longitude, userLocationObj.latitude]
+      : undefined;
 
     // Load friend locations
     const loadFriendLocations = useCallback(async () => {

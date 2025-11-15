@@ -226,10 +226,10 @@ export default function Page() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
       <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
       <TouchableOpacity
-        style={pageStyles.refreshButton}
+        style={[pageStyles.refreshButton, { top: insets.top + 20 }]}
         onPress={handleRefresh}
         disabled={refreshing}
       >
