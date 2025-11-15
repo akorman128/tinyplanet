@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { View, SafeAreaView } from "react-native";
+import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Button, Heading, Body } from "@/design-system";
 import { useLocation } from "@/hooks/useLocation";

@@ -27,23 +27,26 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // Convert user location object to [longitude, latitude] tuple for Mapbox
-    const userLocation: [number, number] | undefined = userLocationObj
-      ? [userLocationObj.longitude, userLocationObj.latitude]
-      : undefined;
 
+    const userLocation: [number, number] = userLocationObj
+      ? [userLocationObj.longitude, userLocationObj.latitude]
+      : [0, 0];
+
+    console.log("userLocation", userLocation);
     // Load friend locations
     const loadFriendLocations = useCallback(async () => {
       try {
         setError(null);
 
-        // Get user's current location
-        await getCurrentLocation();
+        // Get user's current location (force refresh to get actual device location)
+        await getCurrentLocation(true);
 
-        // Update user's location in the database
-        await updateLocationInDatabase();
+        // Update user's location in the database (force update to write to DB)
+        await updateLocationInDatabase(true);
 
         // Fetch friend and mutual locations
         const locations = await getFriendLocations();
+        console.log("friend locations", locations);
         setFriendLocations(locations);
       } catch (err) {
         console.error("Error loading friend locations:", err);
