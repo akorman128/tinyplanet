@@ -35,7 +35,19 @@ export const colors = {
 
   // Special hex values (for React Native components that need hex)
   hex: {
+    // Primary colors
+    purple200: "#e9d5ff",
+    purple600: "#9333ea",
+    purple700: "#7c3aed",
+    purple800: "#6b21a8",
+    purple900: "#4c1d95",
+
+    // Neutral colors
     placeholder: "#9CA3AF", // gray-400 equivalent
+    white: "#ffffff",
+
+    // Semantic colors
+    error: "#ef4444", // red-500 equivalent
   },
 } as const;
 

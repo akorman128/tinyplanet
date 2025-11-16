@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { MapView } from "@/components/MapView";
@@ -19,7 +24,7 @@ export default function Page() {
   return (
     <View style={{ flex: 1 }}>
       <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={[pageStyles.refreshButton, { top: insets.top + 20 }]}
         onPress={handleRefresh}
         disabled={refreshing}
@@ -29,7 +34,7 @@ export default function Page() {
         ) : (
           <Ionicons name="refresh" size={24} color="#ffffff" />
         )}
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

@@ -10,7 +10,7 @@ export default function ProtectedLayout() {
         }}
       />
       <Stack.Screen
-        name="(tabs)"
+        name="index"
         options={{
           headerShown: false,
         }}

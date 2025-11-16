@@ -41,7 +41,7 @@ export default function SendInvitesPage() {
   // Check if invites have already been sent and redirect if so
   useEffect(() => {
     if (profileState?.onboarding_invites_sent) {
-      router.replace("/(protected)/(tabs)");
+      router.replace("/(protected)");
     }
   }, [profileState?.onboarding_invites_sent]);
 
@@ -115,7 +115,7 @@ export default function SendInvitesPage() {
       }
 
       // Navigate immediately to next screen
-      router.replace("/(protected)/(tabs)");
+      router.replace("/(protected)");
     } catch (error: any) {
       console.error("Error sending invites:", error);
       Alert.alert(
