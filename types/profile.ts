@@ -6,6 +6,8 @@ export interface Profile {
   hometown: string;
   birthday: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   phone_number: string;
   onboarding_invites_sent?: boolean;
   created_at: string;
