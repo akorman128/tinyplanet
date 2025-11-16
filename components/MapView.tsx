@@ -115,8 +115,8 @@ export const MapView: React.FC<MapViewProps> = React.memo(
         {mapDimensions.width > 0 && mapDimensions.height > 0 && (
           <Mapbox.MapView
             style={styles.map}
-            // styleURL="mapbox://styles/mapbox/light-v11"
-            styleURL={Mapbox.StyleURL.Street}
+            styleURL="mapbox://styles/mapbox/navigation-day-v1"
+            // styleURL={Mapbox.StyleURL.Street}
             compassViewPosition={3}
             scaleBarEnabled={false}
           >
@@ -191,15 +191,37 @@ export const MapView: React.FC<MapViewProps> = React.memo(
                 clusterMaxZoomLevel={14}
               >
                 {/* Clustered points */}
-                <SymbolLayer
-                  id="clusters"
+                <CircleLayer
+                  id="cluster-circles"
                   filter={["has", "point_count"]}
                   style={{
-                    textField: ["get", "point_count"],
+                    circleRadius: [
+                      "step",
+                      ["get", "point_count"],
+                      20, // radius for clusters with < 10 points
+                      10,
+                      20, // radius for clusters with 10-100 points
+                      100,
+                      20, // radius for clusters with > 100 points
+                    ],
+                    circleColor: colors.hex.purple600,
+                    circleOpacity: 0.9,
+                    circleStrokeWidth: 3,
+                    circleStrokeColor: colors.hex.white,
+                  }}
+                />
+                <SymbolLayer
+                  id="cluster-count"
+                  filter={["has", "point_count"]}
+                  style={{
+                    textField: ["get", "point_count_abbreviated"],
                     textSize: 14,
                     textColor: colors.hex.white,
-                    iconImage: "marker-15",
-                    iconSize: 1.5,
+                    textFont: [
+                      "Roboto Bold",
+                      "Noto Sans Bold",
+                      "Arial Unicode MS Bold",
+                    ],
                   }}
                 />
 
