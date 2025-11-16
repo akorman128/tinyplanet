@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { colors, Avatar } from "@/design-system";
 import { reverseGeocode } from "@/utils/reverseGeocode";
+import { countEmojis } from "@/utils";
 
 interface UserDetailsSheetProps {
   userId: string | null;
@@ -106,9 +107,18 @@ const UserDetailsSheetComponent = forwardRef<
                 vibeEmojis.length > 0 && (
                   <View style={styles.vibeContainer}>
                     <Text style={styles.vibeLabel}>Vibe</Text>
-                    <Text style={styles.vibeEmojis}>
-                      {vibeEmojis.join(" ")}
-                    </Text>
+                    <View style={styles.emojiGrid}>
+                      {countEmojis(vibeEmojis).map(([emoji, count]) => (
+                        <View key={emoji} style={styles.emojiWithBadge}>
+                          <Text style={styles.vibeEmojis}>{emoji}</Text>
+                          {count > 1 && (
+                            <View style={styles.countBadge}>
+                              <Text style={styles.countText}>{count}</Text>
+                            </View>
+                          )}
+                        </View>
+                      ))}
+                    </View>
                   </View>
                 )
               )}
@@ -228,9 +238,34 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  emojiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    justifyContent: "center",
+  },
+  emojiWithBadge: {
+    position: "relative",
+  },
   vibeEmojis: {
     fontSize: 32,
-    letterSpacing: 8,
+  },
+  countBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: colors.hex.purple600,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.hex.white,
   },
   infoRow: {
     width: "100%",
