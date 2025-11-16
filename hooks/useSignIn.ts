@@ -2,6 +2,7 @@ import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "./useProfile";
 import { useLocation } from "./useLocation";
+import { Profile } from "@/types/profile";
 
 interface signInWithPhoneNumberDto {
   phone: string;
@@ -23,9 +24,9 @@ export const useSignIn = () => {
   const { updateLocationInDatabase } = useLocation();
   const { setProfileState } = useProfileStore();
 
-  const updateUserLocation = async (): Promise<void> => {
+  const updateUserLocation = async (profile: Profile): Promise<void> => {
     try {
-      await updateLocationInDatabase();
+      await updateLocationInDatabase(false, profile);
     } catch (error) {
       console.error("Failed to update location on sign-in:", error);
     }
@@ -67,7 +68,7 @@ export const useSignIn = () => {
     setProfileState(profile);
 
     try {
-      await updateUserLocation();
+      await updateUserLocation(profile);
     } catch (error) {
       console.error("Failed to update location on sign-in:", error);
     }
@@ -88,7 +89,7 @@ export const useSignIn = () => {
     setProfileState(user);
 
     // Update location after successful sign-in
-    await updateUserLocation();
+    await updateUserLocation(user);
   };
 
   return {

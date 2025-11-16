@@ -6,6 +6,7 @@ import {
   useLocationStore,
   LocationCoordinates,
 } from "../stores/locationStore";
+import { Profile } from "../types/profile";
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -39,7 +40,7 @@ export interface UseLocationReturn {
   requestPermission: () => Promise<boolean>;
   getCurrentLocation: (forceRefresh?: boolean) => Promise<LocationCoordinates>;
   refreshLocation: () => Promise<void>;
-  updateLocationInDatabase: (forceUpdate?: boolean) => Promise<void>;
+  updateLocationInDatabase: (forceUpdate?: boolean, profile?: Profile) => Promise<void>;
   checkPermissionStatus: () => Promise<void>;
 }
 
@@ -170,10 +171,14 @@ export const useLocation = (): UseLocationReturn => {
    * Requests permission if not already granted, then updates the profile location
    * Implements distance-based filtering to avoid unnecessary DB writes
    * @param forceUpdate - If true, skip distance check and always update database
+   * @param profile - Optional profile to use instead of reading from store (useful to avoid race conditions)
    */
   const updateLocationInDatabase = useCallback(
-    async (forceUpdate: boolean = false): Promise<void> => {
-      if (!profileState) {
+    async (forceUpdate: boolean = false, profile?: Profile): Promise<void> => {
+      // Use provided profile or fall back to profileState from store
+      const currentProfile = profile || profileState;
+
+      if (!currentProfile) {
         console.error("No profile loaded, skipping location update");
         return;
       }
@@ -219,7 +224,7 @@ export const useLocation = (): UseLocationReturn => {
             location: `POINT(${longitude} ${latitude})`,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", profileState.id)
+          .eq("id", currentProfile.id)
           .select()
           .single();
 
