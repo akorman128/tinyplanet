@@ -1,4 +1,10 @@
-import { Vibe, GetVibesDto, GetVibesOutputDto } from "../types/vibe";
+import {
+  Vibe,
+  GetVibesDto,
+  GetVibesOutputDto,
+  VibeWithSender,
+  GetVibesWithSenderOutputDto,
+} from "../types/vibe";
 import { useSupabase } from "./useSupabase";
 import { useProfileStore } from "../stores/profileStore";
 
@@ -35,6 +41,24 @@ export const useVibe = () => {
     if (error) throw error;
 
     return { data };
+  };
+
+  const getVibesWithSenderInfo = async (
+    recipientId: string
+  ): Promise<GetVibesWithSenderOutputDto> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    const { data, error } = await supabase
+      .from("vibes")
+      .select("*, giver:profiles!giver_id(id, full_name, avatar_url)")
+      .eq("receiver_id", recipientId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return { data: data as VibeWithSender[] };
   };
 
   // ––– MUTATIONS –––
@@ -129,6 +153,7 @@ export const useVibe = () => {
   return {
     isLoaded,
     getVibes,
+    getVibesWithSenderInfo,
     createVibe,
     deleteVibe,
     updateVibe,

@@ -1,15 +1,23 @@
 import React, { forwardRef, useMemo, useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Pressable,
+} from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { colors, Avatar } from "@/design-system";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { countEmojis } from "@/utils";
+import { useRouter } from "expo-router";
 
 interface UserDetailsSheetProps {
   userId: string | null;
   fullName: string;
   avatarUrl?: string;
   vibeEmojis?: string[];
+  totalVibeCount?: number;
   latitude?: number;
   longitude?: number;
   hometown?: string;
@@ -22,9 +30,11 @@ const UserDetailsSheetComponent = forwardRef<
 >(
   (
     {
+      userId,
       fullName,
       avatarUrl,
       vibeEmojis,
+      totalVibeCount,
       latitude,
       longitude,
       hometown,
@@ -32,6 +42,7 @@ const UserDetailsSheetComponent = forwardRef<
     },
     ref
   ) => {
+    const router = useRouter();
     const snapPoints = useMemo(() => ["50%"], []);
     const [humanReadableLocation, setHumanReadableLocation] = useState<
       string | null
@@ -49,10 +60,14 @@ const UserDetailsSheetComponent = forwardRef<
         setGeocoding(true);
         try {
           // Use cached data with stale-while-revalidate pattern
-          const result = await reverseGeocode(longitude, latitude, (freshData) => {
-            // Update with fresh data if cache was stale
-            setHumanReadableLocation(freshData.formattedAddress);
-          });
+          const result = await reverseGeocode(
+            longitude,
+            latitude,
+            (freshData) => {
+              // Update with fresh data if cache was stale
+              setHumanReadableLocation(freshData.formattedAddress);
+            }
+          );
           setHumanReadableLocation(result.formattedAddress);
         } catch (error) {
           console.error("Failed to geocode location:", error);
@@ -105,21 +120,41 @@ const UserDetailsSheetComponent = forwardRef<
               ) : (
                 vibeEmojis &&
                 vibeEmojis.length > 0 && (
-                  <View style={styles.vibeContainer}>
-                    <Text style={styles.vibeLabel}>Vibe</Text>
-                    <View style={styles.emojiGrid}>
-                      {countEmojis(vibeEmojis).map(([emoji, count]) => (
-                        <View key={emoji} style={styles.emojiWithBadge}>
-                          <Text style={styles.vibeEmojis}>{emoji}</Text>
-                          {count > 1 && (
-                            <View style={styles.countBadge}>
-                              <Text style={styles.countText}>{count}</Text>
-                            </View>
-                          )}
-                        </View>
-                      ))}
+                  <Pressable
+                    style={styles.vibeContainer}
+                    onPress={() => {
+                      if (userId) {
+                        router.push({
+                          pathname: "/all-vibes",
+                          params: { userId },
+                        });
+                      }
+                    }}
+                  >
+                    <View style={styles.vibeHeader}>
+                      <Text style={styles.vibeLabel}>
+                        Vibe (
+                        {totalVibeCount && totalVibeCount > 10
+                          ? "10+"
+                          : totalVibeCount}
+                        )
+                      </Text>
                     </View>
-                  </View>
+                    <View style={styles.emojiGrid}>
+                      {countEmojis(vibeEmojis)
+                        .slice(0, 6)
+                        .map(([emoji, count]) => (
+                          <View key={emoji} style={styles.emojiWithBadge}>
+                            <Text style={styles.vibeEmojis}>{emoji}</Text>
+                            {count > 1 && (
+                              <View style={styles.countBadge}>
+                                <Text style={styles.countText}>{count}</Text>
+                              </View>
+                            )}
+                          </View>
+                        ))}
+                    </View>
+                  </Pressable>
                 )
               )}
 
@@ -178,7 +213,9 @@ export const UserDetailsSheet = React.memo(
       prevProps.longitude === nextProps.longitude &&
       prevProps.hometown === nextProps.hometown &&
       prevProps.loading === nextProps.loading &&
-      JSON.stringify(prevProps.vibeEmojis) === JSON.stringify(nextProps.vibeEmojis)
+      prevProps.totalVibeCount === nextProps.totalVibeCount &&
+      JSON.stringify(prevProps.vibeEmojis) ===
+        JSON.stringify(nextProps.vibeEmojis)
     );
   }
 );
@@ -229,14 +266,31 @@ const styles = StyleSheet.create({
   vibeContainer: {
     marginBottom: 24,
     alignItems: "center",
+    width: "100%",
+  },
+  vibeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
   vibeLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: colors.hex.placeholder,
-    marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  chevron: {
+    fontSize: 18,
+    color: colors.hex.placeholder,
+    marginLeft: 8,
+  },
+  totalVibeCount: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: colors.hex.placeholder,
+    marginTop: 12,
   },
   emojiGrid: {
     flexDirection: "row",

@@ -53,6 +53,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       fullName: string;
       avatarUrl?: string;
       vibeEmojis?: string[];
+      totalVibeCount?: number;
       latitude?: number;
       longitude?: number;
       hometown?: string;
@@ -205,6 +206,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               fullName: profile.full_name,
               avatarUrl: profile.avatar_url,
               vibeEmojis: allEmojis.length > 0 ? allEmojis : undefined,
+              totalVibeCount: vibesResult.data.length,
               latitude,
               longitude,
               hometown: profile.hometown,
@@ -451,6 +453,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               fullName={selectedUser.fullName}
               avatarUrl={selectedUser.avatarUrl}
               vibeEmojis={selectedUser.vibeEmojis}
+              totalVibeCount={selectedUser.totalVibeCount}
               latitude={selectedUser.latitude}
               longitude={selectedUser.longitude}
               hometown={selectedUser.hometown}

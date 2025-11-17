@@ -48,4 +48,17 @@ export interface GetVibesDto {
   recipientId?: string;
   giverId?: string;
   inviteCodeId?: string;
+  includeSenderInfo?: boolean;
+}
+
+export interface VibeWithSender extends Vibe {
+  giver: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  };
+}
+
+export interface GetVibesWithSenderOutputDto {
+  data: VibeWithSender[];
 }
