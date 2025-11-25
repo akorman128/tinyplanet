@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   View,
   ActivityIndicator,
@@ -12,12 +18,13 @@ import Mapbox, {
   ShapeSource,
   CircleLayer,
   SymbolLayer,
+  LineLayer,
 } from "@rnmapbox/maps";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { useFriends } from "@/hooks/useFriends";
-import { GeoJSONFeatureCollection } from "@/types/friendship";
+import { GeoJSONFeatureCollection, ConnectionLine } from "@/types/friendship";
 import { useLocation } from "@/hooks/useLocation";
-import { colors } from "@/design-system";
+import { colors, MapLegend } from "@/design-system";
 import { UserDetailsSheet } from "./UserDetailsSheet";
 import { useProfile } from "@/hooks/useProfile";
 import { useVibe } from "@/hooks/useVibe";
@@ -46,6 +53,9 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [mapDimensions, setMapDimensions] = useState({ width: 0, height: 0 });
 
+    // Connection line visibility state (default: off)
+    const [showConnectionLines, setShowConnectionLines] = useState(false);
+
     // Bottom sheet state
     const bottomSheetRef = useRef<BottomSheet>(null);
     const [selectedUser, setSelectedUser] = useState<{
@@ -64,6 +74,81 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     const userLocation: [number, number] | null = userLocationObj
       ? [userLocationObj.longitude, userLocationObj.latitude]
       : null;
+
+    // Calculate connection lines based on friend locations and user location
+    const connectionLines = useMemo(() => {
+      if (!friendLocations || !userLocation) {
+        return { userToFriendLines: [], friendToMutualLines: [] };
+      }
+
+      const userToFriendLines: ConnectionLine[] = [];
+      const friendToMutualLines: ConnectionLine[] = [];
+
+      // Create a map of friend IDs to their coordinates for quick lookup
+      const friendCoordinatesMap = new Map<string, [number, number]>();
+
+      friendLocations.features.forEach((feature) => {
+        const { id, type, connecting_friend_id } = feature.properties;
+        const coordinates = feature.geometry.coordinates as [number, number];
+
+        if (type === "friend") {
+          // Store friend coordinates for later use
+          friendCoordinatesMap.set(id, coordinates);
+
+          // Create line from user to friend
+          userToFriendLines.push({
+            from: { id: "user", coordinates: userLocation },
+            to: { id, coordinates },
+            type: "user-to-friend",
+          });
+        } else if (type === "mutual" && connecting_friend_id) {
+          // Create line from connecting friend to mutual
+          const friendCoords = friendCoordinatesMap.get(connecting_friend_id);
+          if (friendCoords) {
+            friendToMutualLines.push({
+              from: { id: connecting_friend_id, coordinates: friendCoords },
+              to: { id, coordinates },
+              type: "friend-to-mutual",
+            });
+          }
+        }
+      });
+
+      return { userToFriendLines, friendToMutualLines };
+    }, [friendLocations, userLocation]);
+
+    // Convert connection lines to GeoJSON LineString format for Mapbox
+    const userToFriendLinesGeoJSON = useMemo(() => {
+      if (!showConnectionLines) return null;
+
+      return {
+        type: "FeatureCollection" as const,
+        features: connectionLines.userToFriendLines.map((line) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: [line.from.coordinates, line.to.coordinates],
+          },
+          properties: {},
+        })),
+      };
+    }, [connectionLines.userToFriendLines, showConnectionLines]);
+
+    const friendToMutualLinesGeoJSON = useMemo(() => {
+      if (!showConnectionLines) return null;
+
+      return {
+        type: "FeatureCollection" as const,
+        features: connectionLines.friendToMutualLines.map((line) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: [line.from.coordinates, line.to.coordinates],
+          },
+          properties: {},
+        })),
+      };
+    }, [connectionLines.friendToMutualLines, showConnectionLines]);
 
     // Load friend locations with smart caching
     const loadFriendLocations = useCallback(
@@ -118,6 +203,14 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     const handleLayout = useCallback((event: LayoutChangeEvent) => {
       const { width, height } = event.nativeEvent.layout;
       setMapDimensions({ width, height });
+    }, []);
+
+    // Handle bottom sheet close
+    const handleSheetChange = useCallback((index: number) => {
+      if (index === -1) {
+        // Sheet is closed, clear selected user to show legend
+        setSelectedUser(null);
+      }
     }, []);
 
     // Handle marker press
@@ -339,6 +432,43 @@ export const MapView: React.FC<MapViewProps> = React.memo(
                 </ShapeSource>
               )}
 
+              {/* Connection lines: User → Friends */}
+              {userToFriendLinesGeoJSON &&
+                userToFriendLinesGeoJSON.features.length > 0 && (
+                  <ShapeSource
+                    id="user-to-friend-lines"
+                    shape={userToFriendLinesGeoJSON}
+                  >
+                    <LineLayer
+                      id="user-to-friend-line-layer"
+                      style={{
+                        lineColor: colors.hex.purple600,
+                        lineWidth: 2,
+                        lineOpacity: 0.6,
+                      }}
+                    />
+                  </ShapeSource>
+                )}
+
+              {/* Connection lines: Friends → Mutuals */}
+              {friendToMutualLinesGeoJSON &&
+                friendToMutualLinesGeoJSON.features.length > 0 && (
+                  <ShapeSource
+                    id="friend-to-mutual-lines"
+                    shape={friendToMutualLinesGeoJSON}
+                  >
+                    <LineLayer
+                      id="friend-to-mutual-line-layer"
+                      style={{
+                        lineColor: colors.hex.purple200,
+                        lineWidth: 2,
+                        lineOpacity: 0.6,
+                        lineDasharray: [2, 2],
+                      }}
+                    />
+                  </ShapeSource>
+                )}
+
               {/* Friend and mutual markers with clustering */}
               {friendLocations && friendLocations.features.length > 0 && (
                 <ShapeSource
@@ -470,7 +600,6 @@ export const MapView: React.FC<MapViewProps> = React.memo(
             </Mapbox.MapView>
           )}
 
-          {/* User Details Bottom Sheet */}
           {selectedUser && (
             <UserDetailsSheet
               ref={bottomSheetRef}
@@ -483,6 +612,14 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               longitude={selectedUser.longitude}
               hometown={selectedUser.hometown}
               loading={sheetLoading}
+              onSheetChange={handleSheetChange}
+            />
+          )}
+
+          {!selectedUser && (
+            <MapLegend
+              showLines={showConnectionLines}
+              onToggleLines={setShowConnectionLines}
             />
           )}
         </View>

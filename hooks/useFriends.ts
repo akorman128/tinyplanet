@@ -128,6 +128,7 @@ export const useFriends = () => {
   /**
    * Gets all friend and mutual locations as a single GeoJSON FeatureCollection
    * for displaying on a map. Friends and mutuals are marked with different types.
+   * Mutuals include connecting_friend_id to enable connection line visualization.
    */
   const getFriendLocations = async (): Promise<GeoJSONFeatureCollection> => {
     if (!profileState) {
@@ -142,7 +143,9 @@ export const useFriends = () => {
       { data: mutuals, error: mutualsError },
     ] = await Promise.all([
       supabase.rpc("get_friend_locations", { p_user_id: userId }),
-      supabase.rpc("get_mutual_locations", { p_user_id: userId }),
+      supabase.rpc("get_mutual_locations_with_connections", {
+        p_user_id: userId,
+      }),
     ]);
 
     if (friendsError) throw friendsError;
@@ -161,6 +164,7 @@ export const useFriends = () => {
         name: loc.full_name,
         type: loc.type as "friend" | "mutual",
         avatar_url: loc.avatar_url,
+        connecting_friend_id: loc.connecting_friend_id, // Only present for mutuals
       },
     }));
 

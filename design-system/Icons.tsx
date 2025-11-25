@@ -7,9 +7,6 @@ import Svg, {
   Rect,
   Circle,
   Line,
-  Polyline,
-  Polygon,
-  Ellipse,
 } from "react-native-svg";
 
 import { SvgProps } from "react-native-svg";

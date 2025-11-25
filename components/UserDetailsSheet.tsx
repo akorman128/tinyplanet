@@ -22,6 +22,7 @@ interface UserDetailsSheetProps {
   longitude?: number;
   hometown?: string;
   loading?: boolean;
+  onSheetChange?: (index: number) => void;
 }
 
 export const UserDetailsSheet = forwardRef<
@@ -39,6 +40,7 @@ export const UserDetailsSheet = forwardRef<
       longitude,
       hometown,
       loading = false,
+      onSheetChange,
     },
     ref
   ) => {
@@ -97,6 +99,7 @@ export const UserDetailsSheet = forwardRef<
           index={-1}
           snapPoints={["50%"]}
           enablePanDownToClose
+          onChange={onSheetChange}
           backgroundStyle={styles.bottomSheetBackground}
           handleIndicatorStyle={styles.handleIndicator}
         >
@@ -115,6 +118,7 @@ export const UserDetailsSheet = forwardRef<
         index={-1}
         snapPoints={["50%"]}
         enablePanDownToClose
+        onChange={onSheetChange}
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
       >

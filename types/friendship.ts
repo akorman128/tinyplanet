@@ -97,10 +97,31 @@ export interface GeoJSONFeature {
     name: string;
     type: "friend" | "mutual";
     avatar_url?: string;
+    connecting_friend_id?: string; // For mutuals: the friend that connects them
   };
 }
 
 export interface GeoJSONFeatureCollection {
   type: "FeatureCollection";
   features: GeoJSONFeature[];
+}
+
+// Connection line types for network visualization
+export type ConnectionType = "user-to-friend" | "friend-to-mutual";
+
+export interface ConnectionLine {
+  from: {
+    id: string;
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  to: {
+    id: string;
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  type: ConnectionType;
+}
+
+export interface ConnectionData {
+  userToFriendLines: ConnectionLine[];
+  friendToMutualLines: ConnectionLine[];
 }
