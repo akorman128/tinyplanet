@@ -85,6 +85,28 @@ export interface CreateFriendOutput {
   data: Friendship;
 }
 
+export interface SearchFriendsAndMutualsInput {
+  query: string;
+}
+
+export interface FriendWithRelationship extends Friend {
+  relationship: "friend" | "mutual";
+}
+
+export interface SearchFriendsAndMutualsOutput {
+  data: FriendWithRelationship[];
+}
+
+export interface PendingRequest extends Friend {
+  direction: "incoming" | "outgoing";
+  created_at: string;
+}
+
+export interface GetPendingRequestsOutput {
+  incoming: PendingRequest[];
+  outgoing: PendingRequest[];
+}
+
 // GeoJSON types for Mapbox
 export interface GeoJSONFeature {
   type: "Feature";

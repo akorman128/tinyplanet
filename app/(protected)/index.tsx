@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { MapView } from "@/components/MapView";
-import { Avatar } from "@/design-system";
+import { Avatar, Icons } from "@/design-system";
 import { useProfileStore } from "@/stores/profileStore";
 import { colors } from "@/design-system/colors";
 
@@ -31,6 +31,10 @@ export default function Page() {
     router.push("/profile");
   };
 
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
@@ -44,17 +48,12 @@ export default function Page() {
           size="small"
         />
       </TouchableOpacity>
-      {/* <TouchableOpacity
-        style={[pageStyles.refreshButton, { top: insets.top + 20 }]}
-        onPress={handleRefresh}
-        disabled={refreshing}
+      <TouchableOpacity
+        style={[pageStyles.searchButton, { top: insets.top + 20 }]}
+        onPress={handleSearchPress}
       >
-        {refreshing ? (
-          <ActivityIndicator size="small" color="#ffffff" />
-        ) : (
-          <Ionicons name="refresh" size={24} color="#ffffff" />
-        )}
-      </TouchableOpacity> */}
+        <Icons.search size={64} color="black" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -76,14 +75,15 @@ const pageStyles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  refreshButton: {
+  searchButton: {
     position: "absolute",
     top: 20,
     right: 20,
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#9333ea",
+    backgroundColor: "white",
+    opacity: 0.7,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",

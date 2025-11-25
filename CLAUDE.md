@@ -302,3 +302,24 @@ TWILIO_PHONE_NUMBER=
 - **Type Safety**: Heavy use of TypeScript, Zod validation, DTOs throughout
 - **Error Handling**: Try-catch in hooks, error states in forms
 - **Optimization**: `useMemo`/`useCallback` for Supabase client and hook callbacks
+
+## Styling Guidelines
+
+**IMPORTANT**: Always use **NativeWind (Tailwind CSS)** for styling instead of StyleSheet.
+
+- ✅ **Preferred**: `<View className="flex-1 bg-white pt-12">`
+- ❌ **Avoid**: `<View style={styles.container}>` with `StyleSheet.create()`
+
+**When to use NativeWind**:
+- All new components and screens
+- Refactoring existing components
+- Layout (flexbox, spacing, sizing)
+- Colors (use design system color tokens when available)
+- Typography (text sizes, weights, colors)
+- Borders, shadows, and visual effects
+
+**Exceptions** (rare cases where StyleSheet may be needed):
+- Complex platform-specific styles that can't be expressed with Tailwind utilities
+- Dynamic styles that require runtime calculations
+
+**Migration Priority**: When editing existing files that use StyleSheet (like `edit-profile.tsx`), consider migrating to NativeWind if time permits, but prioritize the main task first.

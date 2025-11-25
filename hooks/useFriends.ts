@@ -19,6 +19,11 @@ import {
   FriendshipStatus,
   GeoJSONFeature,
   GeoJSONFeatureCollection,
+  SearchFriendsAndMutualsInput,
+  SearchFriendsAndMutualsOutput,
+  FriendWithRelationship,
+  GetPendingRequestsOutput,
+  PendingRequest,
 } from "@/types/friendship";
 
 export const useFriends = () => {
@@ -174,6 +179,102 @@ export const useFriends = () => {
     };
   };
 
+  /**
+   * Searches friends and friends-of-friends by name
+   */
+  const searchFriendsAndMutuals = async (
+    input: SearchFriendsAndMutualsInput
+  ): Promise<SearchFriendsAndMutualsOutput> => {
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot search friends");
+    }
+
+    const { query } = input;
+    const userId = profileState.id;
+
+    // Get friends and friends-of-friends in parallel
+    const [{ data: friends }, { data: mutuals }] = await Promise.all([
+      getFriends(),
+      getFriendsOfFriends(),
+    ]);
+
+    // Filter by name (case-insensitive)
+    const lowerQuery = query.toLowerCase().trim();
+
+    const matchingFriends: FriendWithRelationship[] = friends
+      .filter((f) => f.full_name.toLowerCase().includes(lowerQuery))
+      .map((f) => ({ ...f, relationship: "friend" as const }));
+
+    const matchingMutuals: FriendWithRelationship[] = mutuals
+      .filter((m) => m.full_name.toLowerCase().includes(lowerQuery))
+      .map((m) => ({ ...m, relationship: "mutual" as const }));
+
+    // Combine and sort by name
+    const results = [...matchingFriends, ...matchingMutuals].sort((a, b) =>
+      a.full_name.localeCompare(b.full_name)
+    );
+
+    return { data: results };
+  };
+
+  /**
+   * Gets all pending friend requests (incoming and outgoing)
+   */
+  const getPendingRequests =
+    async (): Promise<GetPendingRequestsOutput> => {
+      if (!profileState) {
+        throw new Error("Profile not loaded - cannot fetch pending requests");
+      }
+
+      const userId = profileState.id;
+
+      // Get all pending friendships involving this user
+      const { data, error } = await supabase
+        .from("friendships")
+        .select(
+          `
+        id,
+        user_a,
+        user_b,
+        status,
+        requested_by,
+        created_at,
+        a:profiles!friendships_user_a_fkey (id, full_name, avatar_url, website, hometown, birthday, location),
+        b:profiles!friendships_user_b_fkey (id, full_name, avatar_url, website, hometown, birthday, location)
+      `
+        )
+        .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+        .eq("status", FriendshipStatus.PENDING);
+
+      if (error) throw error;
+
+      const friendships = (data as unknown as FriendshipWithProfiles[]) ?? [];
+
+      const incoming: PendingRequest[] = [];
+      const outgoing: PendingRequest[] = [];
+
+      friendships.forEach((f) => {
+        const isIncoming = f.requested_by !== userId;
+        const otherUser = f.user_a === userId ? f.b : f.a;
+
+        if (!otherUser) return;
+
+        const request: PendingRequest = {
+          ...otherUser,
+          direction: isIncoming ? "incoming" : "outgoing",
+          created_at: f.created_at,
+        };
+
+        if (isIncoming) {
+          incoming.push(request);
+        } else {
+          outgoing.push(request);
+        }
+      });
+
+      return { incoming, outgoing };
+    };
+
   //––––– MUTATIONS –––––
 
   const sendFriendRequest = async (
@@ -305,6 +406,8 @@ export const useFriends = () => {
     getFriendsOfFriends,
     getMutuals,
     getFriendLocations,
+    searchFriendsAndMutuals,
+    getPendingRequests,
     sendFriendRequest,
     acceptFriendRequest,
     declineFriendRequest,

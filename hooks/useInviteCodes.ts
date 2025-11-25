@@ -256,9 +256,32 @@ export const useInviteCodes = () => {
     return true;
   };
 
+  // Get count of invite codes created this month
+  const getInviteCountThisMonth = async (): Promise<number> => {
+    if (!profileState?.id) {
+      return 0;
+    }
+
+    // Calculate start of current month
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const { data } = await getInviteCodes({
+      filters: {
+        userId: profileState.id,
+        startDate: startOfMonth,
+        endDate: endOfMonth,
+      },
+    });
+
+    return data.length;
+  };
+
   return {
     isLoaded,
     getInviteCodes,
+    getInviteCountThisMonth,
     createInviteCode,
     sendInviteCode,
     updateInviteCode,

@@ -345,7 +345,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
     if (loading) {
       return (
-        <View style={styles.centerContainer}>
+        <View className="flex-1 justify-center items-center bg-white">
           <ActivityIndicator size="large" color={colors.hex.purple600} />
         </View>
       );
@@ -353,15 +353,15 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
     if (error) {
       return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+        <View className="flex-1 justify-center items-center bg-white">
+          <Text className="text-error text-base text-center px-6">{error}</Text>
         </View>
       );
     }
 
     return (
-      <GestureHandlerRootView style={styles.container}>
-        <View style={styles.container} onLayout={handleLayout}>
+      <GestureHandlerRootView className="flex-1">
+        <View className="flex-1" onLayout={handleLayout}>
           {mapDimensions.width > 0 && mapDimensions.height > 0 && (
             <Mapbox.MapView
               style={styles.map}
