@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 
 import { useSupabase } from "@/hooks/useSupabase";
-import { useLocation } from "@/hooks/useLocation";
 import { useLocationStore } from "@/stores/locationStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useProfileStore } from "@/stores/profileStore";
@@ -37,21 +36,21 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { isLoaded, session } = useSupabase();
-  const { permissionRequired } = useLocation();
-  const { clearPermissionRequirement } = useLocationStore();
+  const { permissionRequired, clearPermissionRequirement } = useLocationStore();
   const { getProfile } = useProfile();
   const { profileState, setProfileState } = useProfileStore();
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const isLoadingProfile = useRef(false);
 
   // Load profile when session exists but profile doesn't
   useEffect(() => {
     const loadProfile = async () => {
-      if (!session?.user?.id || profileState || isLoadingProfile) {
+      // Skip if no session, profile already loaded, or currently loading
+      if (!session?.user?.id || profileState || isLoadingProfile.current) {
         return;
       }
 
       console.log("Session exists but no profile - fetching from database");
-      setIsLoadingProfile(true);
+      isLoadingProfile.current = true;
 
       try {
         const profile = await getProfile({ userId: session.user.id });
@@ -60,24 +59,26 @@ function RootNavigator() {
       } catch (error) {
         console.error("Failed to load profile:", error);
       } finally {
-        setIsLoadingProfile(false);
+        isLoadingProfile.current = false;
       }
     };
 
     loadProfile();
-  }, [session, profileState, isLoadingProfile, getProfile, setProfileState]);
+  }, [session?.user?.id, profileState, getProfile, setProfileState]);
 
+  // Hide splash screen when auth is loaded and either:
+  // - No session (show public routes)
+  // - Profile is loaded (show protected routes)
   useEffect(() => {
-    // Only hide splash screen when both auth and profile are loaded
-    if (isLoaded && (!session || profileState || isLoadingProfile === false)) {
+    if (isLoaded && (!session || profileState)) {
       SplashScreen.hide();
     }
-  }, [isLoaded, session, profileState, isLoadingProfile]);
+  }, [isLoaded, session, profileState]);
 
   // Show loading while profile is being fetched
-  if (session && !profileState && (isLoadingProfile || !isLoaded)) {
+  if (session && !profileState && !isLoaded) {
     return (
-      <View style={styles.loadingContainer}>
+      <View className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#9333ea" />
       </View>
     );
@@ -116,11 +117,3 @@ function RootNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#ffffff",
-  },
-});

@@ -28,7 +28,7 @@ import { formatPhoneNumber } from "@/utils";
 type TabId = "find" | "requests" | "invite";
 
 const TABS: Tab[] = [
-  { id: "find", label: "Find Users" },
+  { id: "find", label: "Find Friends" },
   { id: "requests", label: "Requests" },
   { id: "invite", label: "Invite" },
 ];
@@ -94,7 +94,8 @@ export default function SearchScreen() {
     declineFriendRequest,
   } = useFriends();
   const { createVibe } = useVibe();
-  const { createInviteCode, sendInviteCode, getInviteCountThisMonth } = useInviteCodes();
+  const { createInviteCode, sendInviteCode, getInviteCountThisMonth } =
+    useInviteCodes();
   const { pickContact: pickContactFromDevice } = useContactPicker();
 
   const loadPendingRequests = useCallback(async () => {
@@ -142,10 +143,9 @@ export default function SearchScreen() {
   useEffect(() => {
     loadPendingRequests();
     loadInviteCount();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Debounced search (800ms)
+  // Debounced search (500ms)
   useEffect(() => {
     if (activeTab !== "find") return;
 
@@ -155,7 +155,7 @@ export default function SearchScreen() {
       } else {
         setSearchResults([]);
       }
-    }, 800);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [searchQuery, activeTab, handleSearch]);
