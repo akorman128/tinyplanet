@@ -1,12 +1,9 @@
 import { useState, useCallback } from "react";
 import * as Location from "expo-location";
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
-import {
-  useLocationStore,
-  LocationCoordinates,
-} from "../stores/locationStore";
-import { Profile } from "../types/profile";
+import { useProfileStore } from "@/stores/profileStore";
+import { useLocationStore, LocationCoordinates } from "@/stores/locationStore";
+import { Profile } from "@/types/profile";
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -40,7 +37,10 @@ export interface UseLocationReturn {
   requestPermission: () => Promise<boolean>;
   getCurrentLocation: (forceRefresh?: boolean) => Promise<LocationCoordinates>;
   refreshLocation: () => Promise<void>;
-  updateLocationInDatabase: (forceUpdate?: boolean, profile?: Profile) => Promise<void>;
+  updateLocationInDatabase: (
+    forceUpdate?: boolean,
+    profile?: Profile
+  ) => Promise<void>;
   checkPermissionStatus: () => Promise<void>;
 }
 
@@ -51,7 +51,27 @@ export interface UseLocationReturn {
 export const useLocation = (): UseLocationReturn => {
   const { supabase } = useSupabase();
   const { profileState, setProfileState } = useProfileStore();
-  const locationStore = useLocationStore();
+
+  // Use selective subscriptions to prevent unnecessary re-renders
+  const currentLocation = useLocationStore((state) => state.currentLocation);
+  const lastPermissionStatus = useLocationStore(
+    (state) => state.lastPermissionStatus
+  );
+  const lastDatabaseUpdate = useLocationStore(
+    (state) => state.lastDatabaseUpdate
+  );
+  const setPermissionStatus = useLocationStore(
+    (state) => state.setPermissionStatus
+  );
+  const markPermissionGranted = useLocationStore(
+    (state) => state.markPermissionGranted
+  );
+  const setLocation = useLocationStore((state) => state.setLocation);
+  const isLocationStale = useLocationStore((state) => state.isLocationStale);
+  const markDatabaseUpdate = useLocationStore(
+    (state) => state.markDatabaseUpdate
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,7 +87,7 @@ export const useLocation = (): UseLocationReturn => {
       // Check existing permission status
       const { status: existingStatus } =
         await Location.getForegroundPermissionsAsync();
-      locationStore.setPermissionStatus(existingStatus);
+      setPermissionStatus(existingStatus);
 
       if (existingStatus === Location.PermissionStatus.GRANTED) {
         return true;
@@ -75,14 +95,14 @@ export const useLocation = (): UseLocationReturn => {
 
       // Request permission if not granted
       const { status } = await Location.requestForegroundPermissionsAsync();
-      locationStore.setPermissionStatus(status);
+      setPermissionStatus(status);
 
       if (status !== Location.PermissionStatus.GRANTED) {
         setError("Location permission not granted");
         return false;
       }
 
-      locationStore.markPermissionGranted();
+      markPermissionGranted();
       return true;
     } catch (err) {
       console.error("Error requesting location permission:", err);
@@ -91,12 +111,9 @@ export const useLocation = (): UseLocationReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [locationStore]);
+  }, [setPermissionStatus, markPermissionGranted]);
 
   /**
-   * Get current location coordinates
-   * Automatically requests permission if not already granted
-   * Uses cached location if available and not stale (unless forceRefresh is true)
    * @param forceRefresh - If true, always fetch fresh location from device
    */
   const getCurrentLocation = useCallback(
@@ -106,12 +123,8 @@ export const useLocation = (): UseLocationReturn => {
         setError(null);
 
         // Return cached location if available and not stale (unless forcing refresh)
-        if (
-          !forceRefresh &&
-          locationStore.currentLocation &&
-          !locationStore.isLocationStale()
-        ) {
-          return locationStore.currentLocation;
+        if (!forceRefresh && currentLocation && !isLocationStale()) {
+          return currentLocation;
         }
 
         // Check and request permission if needed
@@ -131,7 +144,7 @@ export const useLocation = (): UseLocationReturn => {
         };
 
         // Update cache
-        locationStore.setLocation(coords);
+        setLocation(coords);
         return coords;
       } catch (err) {
         console.error("Error getting current location:", err);
@@ -141,7 +154,7 @@ export const useLocation = (): UseLocationReturn => {
         setIsLoading(false);
       }
     },
-    [requestPermission, locationStore]
+    [requestPermission, currentLocation, isLocationStale, setLocation]
   );
 
   /**
@@ -160,11 +173,11 @@ export const useLocation = (): UseLocationReturn => {
   const checkPermissionStatus = useCallback(async (): Promise<void> => {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
-      locationStore.setPermissionStatus(status);
+      setPermissionStatus(status);
     } catch (err) {
       console.error("Error checking permission status:", err);
     }
-  }, [locationStore]);
+  }, [setPermissionStatus]);
 
   /**
    * Update the user's location in the database
@@ -196,11 +209,8 @@ export const useLocation = (): UseLocationReturn => {
         }
 
         // Check distance threshold (100m) to avoid unnecessary DB writes
-        if (!forceUpdate && locationStore.lastDatabaseUpdate) {
-          const distance = calculateDistance(
-            coords,
-            locationStore.lastDatabaseUpdate
-          );
+        if (!forceUpdate && lastDatabaseUpdate) {
+          const distance = calculateDistance(coords, lastDatabaseUpdate);
 
           // Skip update if moved less than 100 meters
           if (distance < 100) {
@@ -237,7 +247,7 @@ export const useLocation = (): UseLocationReturn => {
         }
 
         // Mark this location as the last database update
-        locationStore.markDatabaseUpdate(coords);
+        markDatabaseUpdate(coords);
 
         // Update profile state with new location
         if (data) {
@@ -249,12 +259,19 @@ export const useLocation = (): UseLocationReturn => {
         console.error("Error updating location in database:", err);
       }
     },
-    [profileState, supabase, setProfileState, getCurrentLocation, locationStore]
+    [
+      profileState,
+      supabase,
+      setProfileState,
+      getCurrentLocation,
+      lastDatabaseUpdate,
+      markDatabaseUpdate,
+    ]
   );
 
   return {
-    location: locationStore.currentLocation,
-    permissionStatus: locationStore.lastPermissionStatus,
+    location: currentLocation,
+    permissionStatus: lastPermissionStatus,
     isLoading,
     error,
     requestPermission,

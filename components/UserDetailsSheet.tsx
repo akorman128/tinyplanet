@@ -1,4 +1,4 @@
-import React, { forwardRef, useMemo, useEffect, useState } from "react";
+import React, { forwardRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
-import { colors, Avatar } from "@/design-system";
+import { colors, Avatar, InfoRow } from "@/design-system";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { countEmojis } from "@/utils";
 import { useRouter } from "expo-router";
@@ -24,7 +24,7 @@ interface UserDetailsSheetProps {
   loading?: boolean;
 }
 
-const UserDetailsSheetComponent = forwardRef<
+export const UserDetailsSheet = forwardRef<
   BottomSheet,
   UserDetailsSheetProps
 >(
@@ -43,7 +43,6 @@ const UserDetailsSheetComponent = forwardRef<
     ref
   ) => {
     const router = useRouter();
-    const snapPoints = useMemo(() => ["50%"], []);
     const [humanReadableLocation, setHumanReadableLocation] = useState<
       string | null
     >(null);
@@ -82,140 +81,83 @@ const UserDetailsSheetComponent = forwardRef<
       geocodeLocation();
     }, [latitude, longitude]);
 
-    // Show basic info immediately, even while loading additional data
-    const showBasicInfo = fullName && !loading;
+    const hasLocation = latitude !== undefined && longitude !== undefined;
+    const hasVibes = vibeEmojis && vibeEmojis.length > 0;
+
+    const handleVibePress = () => {
+      if (userId) {
+        router.push({ pathname: "/all-vibes", params: { userId } });
+      }
+    };
+
+    if (!fullName || loading) {
+      return (
+        <BottomSheet
+          ref={ref}
+          index={-1}
+          snapPoints={["50%"]}
+          enablePanDownToClose
+          backgroundStyle={styles.bottomSheetBackground}
+          handleIndicatorStyle={styles.handleIndicator}
+        >
+          <BottomSheetView style={styles.contentContainer}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.hex.purple600} />
+            </View>
+          </BottomSheetView>
+        </BottomSheet>
+      );
+    }
 
     return (
       <BottomSheet
         ref={ref}
         index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
+        snapPoints={["50%"]}
+        enablePanDownToClose
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
       >
         <BottomSheetView style={styles.contentContainer}>
-          {!showBasicInfo ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.hex.purple600} />
-            </View>
-          ) : (
-            <>
-              {/* Avatar or Initials Circle */}
-              <View style={styles.avatarContainer}>
-                <Avatar fullName={fullName} avatarUrl={avatarUrl} />
+          <View style={styles.avatarContainer}>
+            <Avatar fullName={fullName} avatarUrl={avatarUrl} />
+          </View>
+
+          <Text style={styles.fullName}>{fullName}</Text>
+
+          {hasVibes && (
+            <Pressable style={styles.vibeContainer} onPress={handleVibePress}>
+              <Text style={styles.vibeLabel}>
+                Vibe ({totalVibeCount && totalVibeCount > 10 ? "10+" : totalVibeCount})
+              </Text>
+              <View style={styles.emojiGrid}>
+                {countEmojis(vibeEmojis)
+                  .slice(0, 6)
+                  .map(([emoji, count]) => (
+                    <View key={emoji} style={styles.emojiWithBadge}>
+                      <Text style={styles.vibeEmojis}>{emoji}</Text>
+                      {count > 1 && (
+                        <View style={styles.countBadge}>
+                          <Text style={styles.countText}>{count}</Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
               </View>
-
-              {/* Full Name */}
-              <Text style={styles.fullName}>{fullName}</Text>
-
-              {/* Vibe (Emojis) - show loading state if still loading */}
-              {loading ? (
-                <View style={styles.vibeContainer}>
-                  <ActivityIndicator
-                    size="small"
-                    color={colors.hex.purple600}
-                  />
-                </View>
-              ) : (
-                vibeEmojis &&
-                vibeEmojis.length > 0 && (
-                  <Pressable
-                    style={styles.vibeContainer}
-                    onPress={() => {
-                      if (userId) {
-                        router.push({
-                          pathname: "/all-vibes",
-                          params: { userId },
-                        });
-                      }
-                    }}
-                  >
-                    <View style={styles.vibeHeader}>
-                      <Text style={styles.vibeLabel}>
-                        Vibe (
-                        {totalVibeCount && totalVibeCount > 10
-                          ? "10+"
-                          : totalVibeCount}
-                        )
-                      </Text>
-                    </View>
-                    <View style={styles.emojiGrid}>
-                      {countEmojis(vibeEmojis)
-                        .slice(0, 6)
-                        .map(([emoji, count]) => (
-                          <View key={emoji} style={styles.emojiWithBadge}>
-                            <Text style={styles.vibeEmojis}>{emoji}</Text>
-                            {count > 1 && (
-                              <View style={styles.countBadge}>
-                                <Text style={styles.countText}>{count}</Text>
-                              </View>
-                            )}
-                          </View>
-                        ))}
-                    </View>
-                  </Pressable>
-                )
-              )}
-
-              {/* Current Location */}
-              {(latitude !== undefined || longitude !== undefined) && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Current Location</Text>
-                  {geocoding ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={colors.hex.purple600}
-                    />
-                  ) : (
-                    <Text style={styles.infoValue}>
-                      {humanReadableLocation || "Unknown location"}
-                    </Text>
-                  )}
-                </View>
-              )}
-
-              {/* Hometown - show loading state if still loading */}
-              {loading && !hometown ? (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Hometown</Text>
-                  <ActivityIndicator
-                    size="small"
-                    color={colors.hex.purple600}
-                  />
-                </View>
-              ) : (
-                hometown && (
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Hometown</Text>
-                    <Text style={styles.infoValue}>{hometown}</Text>
-                  </View>
-                )
-              )}
-            </>
+            </Pressable>
           )}
+
+          {hasLocation && (
+            <InfoRow
+              label="Current Location"
+              value={humanReadableLocation || "Unknown location"}
+              loading={geocoding}
+            />
+          )}
+
+          {hometown && <InfoRow label="Hometown" value={hometown} />}
         </BottomSheetView>
       </BottomSheet>
-    );
-  }
-);
-
-// Memoize the component to prevent unnecessary re-renders
-export const UserDetailsSheet = React.memo(
-  UserDetailsSheetComponent,
-  (prevProps, nextProps) => {
-    // Only re-render if relevant props change
-    return (
-      prevProps.userId === nextProps.userId &&
-      prevProps.fullName === nextProps.fullName &&
-      prevProps.avatarUrl === nextProps.avatarUrl &&
-      prevProps.latitude === nextProps.latitude &&
-      prevProps.longitude === nextProps.longitude &&
-      prevProps.hometown === nextProps.hometown &&
-      prevProps.loading === nextProps.loading &&
-      prevProps.totalVibeCount === nextProps.totalVibeCount &&
-      JSON.stringify(prevProps.vibeEmojis) ===
-        JSON.stringify(nextProps.vibeEmojis)
     );
   }
 );
@@ -268,29 +210,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
-  vibeHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
   vibeLabel: {
     fontSize: 14,
     fontWeight: "600",
     color: colors.hex.placeholder,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-  },
-  chevron: {
-    fontSize: 18,
-    color: colors.hex.placeholder,
-    marginLeft: 8,
-  },
-  totalVibeCount: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: colors.hex.placeholder,
-    marginTop: 12,
+    marginBottom: 8,
   },
   emojiGrid: {
     flexDirection: "row",
@@ -320,26 +246,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: colors.hex.white,
-  },
-  infoRow: {
-    width: "100%",
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.hex.placeholder,
-    marginBottom: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: colors.hex.purple900,
   },
 });

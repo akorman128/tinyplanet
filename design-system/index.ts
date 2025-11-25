@@ -6,3 +6,5 @@ export { Icons } from "./Icons";
 export type { IconProps } from "./Icons";
 export { Avatar } from "./Avatar";
 export type { AvatarProps } from "./Avatar";
+export { InfoRow } from "./InfoRow";
+export type { InfoRowProps } from "./InfoRow";

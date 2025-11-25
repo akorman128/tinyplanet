@@ -89,15 +89,19 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       [getFriendLocations, updateLocationInDatabase, getCurrentLocation]
     );
 
-    // Initial load
+    // Initial load - only run once on mount
+    const hasInitiallyLoaded = useRef(false);
     useEffect(() => {
-      const initialLoad = async () => {
-        setLoading(true);
-        await loadFriendLocations();
-        setLoading(false);
-      };
-      initialLoad();
-    }, []);
+      if (!hasInitiallyLoaded.current) {
+        hasInitiallyLoaded.current = true;
+        const initialLoad = async () => {
+          setLoading(true);
+          await loadFriendLocations();
+          setLoading(false);
+        };
+        initialLoad();
+      }
+    }, [loadFriendLocations]);
 
     // Handle manual refresh - force fresh location
     useEffect(() => {
@@ -154,7 +158,9 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
           try {
             // Fetch user profile, vibes, and geocoding in parallel
-            console.log("[MapView] Starting parallel fetch for profile, vibes, and geocoding");
+            console.log(
+              "[MapView] Starting parallel fetch for profile, vibes, and geocoding"
+            );
             const parallelFetchStart = Date.now();
 
             // Start all requests with individual timing
@@ -162,12 +168,17 @@ export const MapView: React.FC<MapViewProps> = React.memo(
             const profilePromise = getProfile({ userId })
               .then((result) => {
                 const profileDuration = Date.now() - profileStart;
-                console.log(`[MapView] Profile fetch completed in ${profileDuration}ms`);
+                console.log(
+                  `[MapView] Profile fetch completed in ${profileDuration}ms`
+                );
                 return result;
               })
               .catch((err) => {
                 const profileDuration = Date.now() - profileStart;
-                console.error(`[MapView] Profile fetch FAILED after ${profileDuration}ms:`, err);
+                console.error(
+                  `[MapView] Profile fetch FAILED after ${profileDuration}ms:`,
+                  err
+                );
                 throw err;
               });
 
@@ -175,18 +186,25 @@ export const MapView: React.FC<MapViewProps> = React.memo(
             const vibesPromise = getVibes({ recipientId: userId })
               .then((result) => {
                 const vibesDuration = Date.now() - vibesStart;
-                console.log(`[MapView] Vibes fetch completed in ${vibesDuration}ms`);
+                console.log(
+                  `[MapView] Vibes fetch completed in ${vibesDuration}ms`
+                );
                 return result;
               })
               .catch((err) => {
                 const vibesDuration = Date.now() - vibesStart;
-                console.error(`[MapView] Vibes fetch FAILED after ${vibesDuration}ms:`, err);
+                console.error(
+                  `[MapView] Vibes fetch FAILED after ${vibesDuration}ms:`,
+                  err
+                );
                 throw err;
               });
 
-            const geocodePromise = reverseGeocode(longitude, latitude).catch((err) => {
-              console.error("[MapView] Geocoding prefetch error:", err);
-            });
+            const geocodePromise = reverseGeocode(longitude, latitude).catch(
+              (err) => {
+                console.error("[MapView] Geocoding prefetch error:", err);
+              }
+            );
 
             const [profile, vibesResult] = await Promise.all([
               profilePromise,
@@ -195,7 +213,9 @@ export const MapView: React.FC<MapViewProps> = React.memo(
             ]);
 
             const parallelFetchDuration = Date.now() - parallelFetchStart;
-            console.log(`[MapView] Parallel fetch completed in ${parallelFetchDuration}ms (total wall time)`);
+            console.log(
+              `[MapView] Parallel fetch completed in ${parallelFetchDuration}ms (total wall time)`
+            );
 
             // Get all emojis from vibes (flatten the array of emoji arrays)
             const allEmojis = vibesResult.data.flatMap((vibe) => vibe.emojis);
@@ -213,11 +233,15 @@ export const MapView: React.FC<MapViewProps> = React.memo(
             });
 
             const totalTime = Date.now() - markerPressTime;
-            console.log(`[MapView] ========== TOTAL TIME: ${totalTime}ms ==========\n`);
+            console.log(
+              `[MapView] ========== TOTAL TIME: ${totalTime}ms ==========\n`
+            );
           } catch (err) {
             console.error("Error loading user details:", err);
             const totalTime = Date.now() - markerPressTime;
-            console.log(`[MapView] ========== FAILED after ${totalTime}ms ==========\n`);
+            console.log(
+              `[MapView] ========== FAILED after ${totalTime}ms ==========\n`
+            );
           } finally {
             setSheetLoading(false);
           }
@@ -248,8 +272,9 @@ export const MapView: React.FC<MapViewProps> = React.memo(
           {mapDimensions.width > 0 && mapDimensions.height > 0 && (
             <Mapbox.MapView
               style={styles.map}
-              styleURL="mapbox://styles/mapbox/navigation-day-v1"
+              // styleURL="mapbox://styles/mapbox/navigation-day-v1"
               // styleURL={Mapbox.StyleURL.Street}
+              styleURL={Mapbox.StyleURL.Dark}
               compassViewPosition={3}
               scaleBarEnabled={false}
             >
