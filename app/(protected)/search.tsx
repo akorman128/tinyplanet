@@ -11,7 +11,7 @@ import { useRouter, Stack } from "expo-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { colors, Input, Button, Heading, Body, Caption, TabBar, Tab } from "@/design-system";
+import { colors, Input, Button, Heading, Body, Caption, TabBar, Tab, ScreenHeader } from "@/design-system";
 import { UserSearchListItem } from "@/components/UserSearchList";
 import { FriendRequestItem } from "@/components/FriendRequestItem";
 import { VibePhoneForm } from "@/components/VibePhoneForm";
@@ -282,6 +282,13 @@ export default function SearchScreen() {
     setRefreshing(false);
   }, [activeTab, searchQuery, handleSearch, loadPendingRequests]);
 
+  const handleUserPress = useCallback(
+    (userId: string) => {
+      router.push({ pathname: "/profile", params: { userId } });
+    },
+    [router]
+  );
+
   const renderFindUsersTab = () => (
     <View className="flex-1">
       <View className="p-6 gap-3">
@@ -309,7 +316,11 @@ export default function SearchScreen() {
         <FlatList
           data={searchResults}
           renderItem={({ item }) => (
-            <UserSearchListItem user={item} onAddFriend={handleAddFriend} />
+            <UserSearchListItem
+              user={item}
+              onAddFriend={handleAddFriend}
+              onPress={handleUserPress}
+            />
           )}
           keyExtractor={(item) => item.id}
           ItemSeparatorComponent={() => (
@@ -396,15 +407,7 @@ export default function SearchScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-white pt-12">
         {/* Header */}
-        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-          <Pressable onPress={() => router.back()} className="py-2 pr-3">
-            <Body className="text-base font-semibold text-purple-600">
-              ← Back
-            </Body>
-          </Pressable>
-          <Heading className="text-xl font-bold">Search</Heading>
-          <View className="w-[60px]" />
-        </View>
+        <ScreenHeader title="Search" />
 
         {/* Tabs */}
         <TabBar

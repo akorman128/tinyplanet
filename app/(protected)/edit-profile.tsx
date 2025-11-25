@@ -13,7 +13,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { colors, Input, Button, Body } from "@/design-system";
+import { colors, Input, Button, Body, ScreenHeader } from "@/design-system";
 import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -123,13 +123,7 @@ export default function EditProfileScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-white pt-12">
         {/* Header */}
-        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-          <Pressable onPress={() => router.back()} className="py-2 pr-3">
-            <Text className="text-base font-semibold text-purple-600">← Back</Text>
-          </Pressable>
-          <Text className="text-xl font-bold text-purple-900">Edit Profile</Text>
-          <View className="w-15" />
-        </View>
+        <ScreenHeader title="Edit Profile" />
 
         {/* Form */}
         <KeyboardAwareScrollView

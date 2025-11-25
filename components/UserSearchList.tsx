@@ -1,21 +1,26 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Avatar } from "@/design-system";
+import { View, Text, Pressable } from "react-native";
+import { Avatar, Button, Badge } from "@/design-system";
 import { FriendWithRelationship } from "@/types/friendship";
 
 type UserSearchListItemProps = {
   user: FriendWithRelationship;
   onAddFriend?: (userId: string) => void;
+  onPress?: (userId: string) => void;
 };
 
 export function UserSearchListItem({
   user,
   onAddFriend,
+  onPress,
 }: UserSearchListItemProps) {
   const isFriend = user.relationship === "friend";
 
   return (
-    <View className="flex-row items-center px-6 py-4">
+    <Pressable
+      className="flex-row items-center px-6 py-4 active:bg-gray-50"
+      onPress={() => onPress?.(user.id)}
+    >
       <Avatar
         fullName={user.full_name}
         avatarUrl={user.avatar_url || undefined}
@@ -29,29 +34,22 @@ export function UserSearchListItem({
           {user.hometown && (
             <Text className="text-sm text-gray-400">{user.hometown}</Text>
           )}
-          <View
-            className={`py-0.5 px-2 rounded ${
-              isFriend ? "bg-purple-200" : "bg-gray-100"
-            }`}
+          <Badge
+            size="small"
+            variant={isFriend ? "secondary" : "default"}
           >
-            <Text
-              className={`text-xs font-semibold ${
-                isFriend ? "text-purple-700" : "text-gray-400"
-              }`}
-            >
-              {isFriend ? "Friend" : "Mutual"}
-            </Text>
-          </View>
+            {isFriend ? "Friend" : "Mutual"}
+          </Badge>
         </View>
       </View>
       {!isFriend && (
-        <TouchableOpacity
-          className="py-2 px-5 bg-purple-600 rounded-lg"
+        <Button
+          variant="primary"
           onPress={() => onAddFriend?.(user.id)}
         >
-          <Text className="text-sm font-semibold text-white">Add</Text>
-        </TouchableOpacity>
+          Add
+        </Button>
       )}
-    </View>
+    </Pressable>
   );
 }

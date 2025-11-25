@@ -1,6 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { Avatar, Badge } from "@/design-system";
+import { View, Text } from "react-native";
+import { Avatar, Badge, Button } from "@/design-system";
 import { PendingRequest } from "@/types/friendship";
 
 type FriendRequestItemProps = {
@@ -34,20 +34,18 @@ export function FriendRequestItem({
       <View className="flex-row gap-2">
         {isIncoming ? (
           <>
-            <TouchableOpacity
-              className="py-2 px-4 bg-purple-600 rounded-lg active:bg-purple-700"
+            <Button
+              variant="primary"
               onPress={() => onAccept?.(request.id)}
             >
-              <Text className="text-sm font-semibold text-white">Accept</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="py-2 px-4 bg-gray-100 rounded-lg active:bg-gray-200"
+              Accept
+            </Button>
+            <Button
+              variant="secondary"
               onPress={() => onDecline?.(request.id)}
             >
-              <Text className="text-sm font-semibold text-gray-500">
-                Decline
-              </Text>
-            </TouchableOpacity>
+              Decline
+            </Button>
           </>
         ) : (
           <Badge variant="default">Pending</Badge>

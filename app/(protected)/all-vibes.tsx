@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
-import { colors, Avatar } from "@/design-system";
+import { colors, Avatar, ScreenHeader } from "@/design-system";
 import { useVibe } from "@/hooks/useVibe";
 import { VibeWithSender } from "@/types/vibe";
 
@@ -86,15 +86,7 @@ export default function AllVibesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-white pt-12">
         {/* Header */}
-        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
-          <Pressable onPress={() => router.back()} className="py-2 pr-3">
-            <Text className="text-base font-semibold text-purple-600">
-              ← Back
-            </Text>
-          </Pressable>
-          <Text className="text-xl font-bold text-purple-900">All Vibes</Text>
-          <View className="w-15" />
-        </View>
+        <ScreenHeader title="Vibes" />
 
         {/* Content */}
         {loading ? (

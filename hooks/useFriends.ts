@@ -180,7 +180,7 @@ export const useFriends = () => {
   };
 
   /**
-   * Searches friends and friends-of-friends by name
+   * Searches friends by name (mutuals excluded)
    */
   const searchFriendsAndMutuals = async (
     input: SearchFriendsAndMutualsInput
@@ -190,13 +190,9 @@ export const useFriends = () => {
     }
 
     const { query } = input;
-    const userId = profileState.id;
 
-    // Get friends and friends-of-friends in parallel
-    const [{ data: friends }, { data: mutuals }] = await Promise.all([
-      getFriends(),
-      getFriendsOfFriends(),
-    ]);
+    // Get friends only (no mutuals)
+    const { data: friends } = await getFriends();
 
     // Filter by name (case-insensitive)
     const lowerQuery = query.toLowerCase().trim();
@@ -205,12 +201,8 @@ export const useFriends = () => {
       .filter((f) => f.full_name.toLowerCase().includes(lowerQuery))
       .map((f) => ({ ...f, relationship: "friend" as const }));
 
-    const matchingMutuals: FriendWithRelationship[] = mutuals
-      .filter((m) => m.full_name.toLowerCase().includes(lowerQuery))
-      .map((m) => ({ ...m, relationship: "mutual" as const }));
-
-    // Combine and sort by name
-    const results = [...matchingFriends, ...matchingMutuals].sort((a, b) =>
+    // Sort by name
+    const results = matchingFriends.sort((a, b) =>
       a.full_name.localeCompare(b.full_name)
     );
 
@@ -220,19 +212,18 @@ export const useFriends = () => {
   /**
    * Gets all pending friend requests (incoming and outgoing)
    */
-  const getPendingRequests =
-    async (): Promise<GetPendingRequestsOutput> => {
-      if (!profileState) {
-        throw new Error("Profile not loaded - cannot fetch pending requests");
-      }
+  const getPendingRequests = async (): Promise<GetPendingRequestsOutput> => {
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot fetch pending requests");
+    }
 
-      const userId = profileState.id;
+    const userId = profileState.id;
 
-      // Get all pending friendships involving this user
-      const { data, error } = await supabase
-        .from("friendships")
-        .select(
-          `
+    // Get all pending friendships involving this user
+    const { data, error } = await supabase
+      .from("friendships")
+      .select(
+        `
         id,
         user_a,
         user_b,
@@ -242,38 +233,38 @@ export const useFriends = () => {
         a:profiles!friendships_user_a_fkey (id, full_name, avatar_url, website, hometown, birthday, location),
         b:profiles!friendships_user_b_fkey (id, full_name, avatar_url, website, hometown, birthday, location)
       `
-        )
-        .or(`user_a.eq.${userId},user_b.eq.${userId}`)
-        .eq("status", FriendshipStatus.PENDING);
+      )
+      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+      .eq("status", FriendshipStatus.PENDING);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const friendships = (data as unknown as FriendshipWithProfiles[]) ?? [];
+    const friendships = (data as unknown as FriendshipWithProfiles[]) ?? [];
 
-      const incoming: PendingRequest[] = [];
-      const outgoing: PendingRequest[] = [];
+    const incoming: PendingRequest[] = [];
+    const outgoing: PendingRequest[] = [];
 
-      friendships.forEach((f) => {
-        const isIncoming = f.requested_by !== userId;
-        const otherUser = f.user_a === userId ? f.b : f.a;
+    friendships.forEach((f) => {
+      const isIncoming = f.requested_by !== userId;
+      const otherUser = f.user_a === userId ? f.b : f.a;
 
-        if (!otherUser) return;
+      if (!otherUser) return;
 
-        const request: PendingRequest = {
-          ...otherUser,
-          direction: isIncoming ? "incoming" : "outgoing",
-          created_at: f.created_at,
-        };
+      const request: PendingRequest = {
+        ...otherUser,
+        direction: isIncoming ? "incoming" : "outgoing",
+        created_at: f.created_at,
+      };
 
-        if (isIncoming) {
-          incoming.push(request);
-        } else {
-          outgoing.push(request);
-        }
-      });
+      if (isIncoming) {
+        incoming.push(request);
+      } else {
+        outgoing.push(request);
+      }
+    });
 
-      return { incoming, outgoing };
-    };
+    return { incoming, outgoing };
+  };
 
   //––––– MUTATIONS –––––
 

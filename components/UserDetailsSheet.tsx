@@ -1,10 +1,10 @@
 import React, { forwardRef, useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, Pressable } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { colors, Avatar, InfoRow } from "@/design-system";
 import { reverseGeocode } from "@/utils/reverseGeocode";
-import { countEmojis } from "@/utils";
 import { useRouter } from "expo-router";
+import { VibeDisplay } from "./VibeDisplay";
 
 interface UserDetailsSheetProps {
   userId: string | null;
@@ -78,7 +78,6 @@ export const UserDetailsSheet = forwardRef<
     }, [latitude, longitude]);
 
     const hasLocation = latitude !== undefined && longitude !== undefined;
-    const hasVibes = vibeEmojis && vibeEmojis.length > 0;
 
     const handleVibePress = () => {
       if (userId) {
@@ -154,34 +153,13 @@ export const UserDetailsSheet = forwardRef<
             {fullName}
           </Text>
 
-          {hasVibes && (
-            <Pressable className="mb-6 items-center w-full" onPress={handleVibePress}>
-              <Text
-                className="text-sm font-semibold uppercase mb-2"
-                style={{ color: colors.hex.placeholder, letterSpacing: 0.5 }}
-              >
-                Vibe ({totalVibeCount && totalVibeCount > 10 ? "10+" : totalVibeCount})
-              </Text>
-              <View className="flex-row flex-wrap gap-4 justify-center">
-                {countEmojis(vibeEmojis)
-                  .slice(0, 6)
-                  .map(([emoji, count]) => (
-                    <View key={emoji} className="relative">
-                      <Text className="text-[32px]">{emoji}</Text>
-                      {count > 1 && (
-                        <View
-                          className="absolute -top-1 -right-1 rounded-full min-w-[20px] h-5 justify-center items-center px-1.5"
-                          style={{ backgroundColor: colors.hex.purple600 }}
-                        >
-                          <Text className="text-xs font-bold text-white">
-                            {count}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  ))}
-              </View>
-            </Pressable>
+          {vibeEmojis && vibeEmojis.length > 0 && (
+            <VibeDisplay
+              vibeEmojis={vibeEmojis}
+              totalVibeCount={totalVibeCount}
+              onPress={handleVibePress}
+              maxDisplay={6}
+            />
           )}
 
           {hasLocation && (
