@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Pressable,
   TouchableOpacity,
   Platform,
@@ -122,25 +121,25 @@ export default function EditProfileScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <View className="flex-1 bg-white pt-12">
         {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
+          <Pressable onPress={() => router.back()} className="py-2 pr-3">
+            <Text className="text-base font-semibold text-purple-600">← Back</Text>
           </Pressable>
-          <Text style={styles.title}>Edit Profile</Text>
-          <View style={styles.headerSpacer} />
+          <Text className="text-xl font-bold text-purple-900">Edit Profile</Text>
+          <View className="w-15" />
         </View>
 
         {/* Form */}
         <KeyboardAwareScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.contentContainer}
+          className="flex-1"
+          contentContainerClassName="px-6 pt-6 pb-12"
           enableOnAndroid={true}
           extraScrollHeight={20}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.formContainer}>
+          <View className="gap-5">
             {/* Full Name */}
             <Controller
               control={control}
@@ -166,34 +165,32 @@ export default function EditProfileScreen() {
               name="birthday"
               render={({ field: { value, onChange } }) => (
                 <>
-                  <View style={styles.fieldContainer}>
-                    <Body style={styles.fieldLabel}>Birthday</Body>
+                  <View className="w-full">
+                    <Body className="text-sm font-semibold text-purple-900 mb-2">Birthday</Body>
                     <TouchableOpacity onPress={() => setShowDatePicker(true)}>
                       <View
-                        style={[
-                          styles.datePickerButton,
-                          errors.birthday && styles.datePickerButtonError,
-                        ]}
+                        className={`py-4 px-4 rounded-xl border-2 bg-white ${
+                          errors.birthday ? "border-red-500" : "border-gray-300"
+                        }`}
                       >
                         <Text
-                          style={[
-                            styles.datePickerText,
-                            !value && styles.datePickerPlaceholder,
-                          ]}
+                          className={`text-base ${
+                            value ? "text-purple-900" : "text-gray-400"
+                          }`}
                         >
                           {value ? formatDate(value) : "Select your birthday"}
                         </Text>
                       </View>
                     </TouchableOpacity>
                     {errors.birthday && (
-                      <Text style={styles.errorText}>
+                      <Text className="text-sm text-red-500 mt-1">
                         {errors.birthday.message}
                       </Text>
                     )}
                   </View>
 
                   {showDatePicker && (
-                    <View style={styles.datePickerContainer}>
+                    <View className="bg-white rounded-xl p-4 gap-4">
                       <DateTimePicker
                         value={value || new Date()}
                         mode="date"
@@ -276,7 +273,7 @@ export default function EditProfileScreen() {
             />
 
             {/* Save Button */}
-            <View style={styles.buttonContainer}>
+            <View className="mt-3">
               <Button
                 variant="primary"
                 onPress={handleSubmit(onSubmit)}
@@ -291,89 +288,3 @@ export default function EditProfileScreen() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.hex.white,
-    paddingTop: 50,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingRight: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.hex.purple600,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.hex.purple900,
-  },
-  headerSpacer: {
-    width: 60,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 48,
-  },
-  formContainer: {
-    gap: 20,
-  },
-  fieldContainer: {
-    width: "100%",
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.hex.purple900,
-    marginBottom: 8,
-  },
-  datePickerButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#d1d5db",
-    backgroundColor: colors.hex.white,
-  },
-  datePickerButtonError: {
-    borderColor: colors.hex.error,
-  },
-  datePickerText: {
-    fontSize: 16,
-    color: colors.hex.purple900,
-  },
-  datePickerPlaceholder: {
-    color: colors.hex.placeholder,
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.hex.error,
-    marginTop: 4,
-  },
-  datePickerContainer: {
-    backgroundColor: colors.hex.white,
-    borderRadius: 12,
-    padding: 16,
-    gap: 16,
-  },
-  buttonContainer: {
-    marginTop: 12,
-  },
-});

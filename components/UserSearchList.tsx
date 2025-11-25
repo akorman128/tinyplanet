@@ -1,7 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Avatar } from "@/design-system";
-import { colors } from "@/design-system/colors";
 import { FriendWithRelationship } from "@/types/friendship";
 
 type UserSearchListItemProps = {
@@ -16,29 +15,29 @@ export function UserSearchListItem({
   const isFriend = user.relationship === "friend";
 
   return (
-    <View style={styles.container}>
+    <View className="flex-row items-center px-6 py-4">
       <Avatar
         fullName={user.full_name}
         avatarUrl={user.avatar_url || undefined}
         size="small"
       />
-      <View style={styles.content}>
-        <Text style={styles.name}>{user.full_name}</Text>
-        <View style={styles.metaRow}>
+      <View className="flex-1 ml-3">
+        <Text className="text-base font-semibold text-purple-900 mb-1">
+          {user.full_name}
+        </Text>
+        <View className="flex-row items-center gap-2">
           {user.hometown && (
-            <Text style={styles.subtitle}>{user.hometown}</Text>
+            <Text className="text-sm text-gray-400">{user.hometown}</Text>
           )}
           <View
-            style={[
-              styles.badge,
-              isFriend ? styles.friendBadge : styles.mutualBadge,
-            ]}
+            className={`py-0.5 px-2 rounded ${
+              isFriend ? "bg-purple-200" : "bg-gray-100"
+            }`}
           >
             <Text
-              style={[
-                styles.badgeText,
-                isFriend ? styles.friendBadgeText : styles.mutualBadgeText,
-              ]}
+              className={`text-xs font-semibold ${
+                isFriend ? "text-purple-700" : "text-gray-400"
+              }`}
             >
               {isFriend ? "Friend" : "Mutual"}
             </Text>
@@ -47,72 +46,12 @@ export function UserSearchListItem({
       </View>
       {!isFriend && (
         <TouchableOpacity
-          style={styles.addButton}
+          className="py-2 px-5 bg-purple-600 rounded-lg"
           onPress={() => onAddFriend?.(user.id)}
         >
-          <Text style={styles.addButtonText}>Add</Text>
+          <Text className="text-sm font-semibold text-white">Add</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  content: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.hex.purple900,
-    marginBottom: 4,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.hex.placeholder,
-  },
-  badge: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 4,
-  },
-  friendBadge: {
-    backgroundColor: colors.hex.purple200,
-  },
-  mutualBadge: {
-    backgroundColor: "#f0f0f0",
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  friendBadgeText: {
-    color: colors.hex.purple700,
-  },
-  mutualBadgeText: {
-    color: colors.hex.placeholder,
-  },
-  addButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    backgroundColor: colors.hex.purple600,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.hex.white,
-  },
-});

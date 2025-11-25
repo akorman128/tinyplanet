@@ -1,7 +1,6 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Avatar } from "@/design-system";
-import { colors } from "@/design-system/colors";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Avatar, Badge } from "@/design-system";
 import { PendingRequest } from "@/types/friendship";
 
 type FriendRequestItemProps = {
@@ -18,99 +17,42 @@ export function FriendRequestItem({
   const isIncoming = request.direction === "incoming";
 
   return (
-    <View style={styles.container}>
+    <View className="flex-row items-center px-6 py-4">
       <Avatar
         fullName={request.full_name}
         avatarUrl={request.avatar_url || undefined}
         size="small"
       />
-      <View style={styles.content}>
-        <Text style={styles.name}>{request.full_name}</Text>
+      <View className="flex-1 ml-3">
+        <Text className="text-base font-semibold text-purple-900 mb-0.5">
+          {request.full_name}
+        </Text>
         {request.hometown && (
-          <Text style={styles.subtitle}>{request.hometown}</Text>
+          <Text className="text-sm text-gray-500">{request.hometown}</Text>
         )}
       </View>
-      <View style={styles.actions}>
+      <View className="flex-row gap-2">
         {isIncoming ? (
           <>
             <TouchableOpacity
-              style={[styles.button, styles.acceptButton]}
+              className="py-2 px-4 bg-purple-600 rounded-lg active:bg-purple-700"
               onPress={() => onAccept?.(request.id)}
             >
-              <Text style={styles.acceptText}>Accept</Text>
+              <Text className="text-sm font-semibold text-white">Accept</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.declineButton]}
+              className="py-2 px-4 bg-gray-100 rounded-lg active:bg-gray-200"
               onPress={() => onDecline?.(request.id)}
             >
-              <Text style={styles.declineText}>Decline</Text>
+              <Text className="text-sm font-semibold text-gray-500">
+                Decline
+              </Text>
             </TouchableOpacity>
           </>
         ) : (
-          <View style={styles.pendingBadge}>
-            <Text style={styles.pendingText}>Pending</Text>
-          </View>
+          <Badge variant="default">Pending</Badge>
         )}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  content: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.hex.purple900,
-    marginBottom: 2,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.hex.placeholder,
-  },
-  actions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  acceptButton: {
-    backgroundColor: colors.hex.purple600,
-  },
-  acceptText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.hex.white,
-  },
-  declineButton: {
-    backgroundColor: "#f0f0f0",
-  },
-  declineText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.hex.placeholder,
-  },
-  pendingBadge: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 8,
-  },
-  pendingText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.hex.placeholder,
-  },
-});

@@ -1,12 +1,6 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { MapView } from "@/components/MapView";
 import { Avatar, Icons } from "@/design-system";
@@ -18,10 +12,6 @@ export default function Page() {
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const { profileState } = useProfileStore();
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-  };
 
   const onRefreshComplete = () => {
     setRefreshing(false);
@@ -36,10 +26,19 @@ export default function Page() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View className="flex-1">
       <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
       <TouchableOpacity
-        style={[pageStyles.profileButton, { top: insets.top + 20 }]}
+        className="absolute left-5 w-12 h-12 rounded-full justify-center items-center"
+        style={{
+          top: insets.top + 20,
+          backgroundColor: colors.hex.white,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          elevation: 5,
+        }}
         onPress={handleProfilePress}
       >
         <Avatar
@@ -49,7 +48,15 @@ export default function Page() {
         />
       </TouchableOpacity>
       <TouchableOpacity
-        style={[pageStyles.searchButton, { top: insets.top + 20 }]}
+        className="absolute right-5 w-12 h-12 rounded-full bg-white opacity-70 justify-center items-center"
+        style={{
+          top: insets.top + 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+          elevation: 5,
+        }}
         onPress={handleSearchPress}
       >
         <Icons.search size={64} color="black" />
@@ -57,39 +64,3 @@ export default function Page() {
     </View>
   );
 }
-
-const pageStyles = StyleSheet.create({
-  profileButton: {
-    position: "absolute",
-    top: 20,
-    left: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.hex.white,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  searchButton: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "white",
-    opacity: 0.7,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-});

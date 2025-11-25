@@ -1,6 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { colors } from "./colors";
+import { View, Text } from "react-native";
 import { getInitials } from "@/utils";
 
 export interface AvatarProps {
@@ -11,16 +10,16 @@ export interface AvatarProps {
 
 const sizeConfig = {
   small: {
-    container: 40,
-    fontSize: 16,
+    container: "w-10 h-10",
+    fontSize: "text-base",
   },
   medium: {
-    container: 60,
-    fontSize: 24,
+    container: "w-[60px] h-[60px]",
+    fontSize: "text-2xl",
   },
   large: {
-    container: 80,
-    fontSize: 32,
+    container: "w-20 h-20",
+    fontSize: "text-[32px]",
   },
 };
 
@@ -31,16 +30,9 @@ export const Avatar: React.FC<AvatarProps> = React.memo(
 
     return (
       <View
-        style={[
-          styles.avatarPlaceholder,
-          {
-            width: config.container,
-            height: config.container,
-            borderRadius: config.container / 2,
-          },
-        ]}
+        className={`${config.container} rounded-full bg-purple-200 justify-center items-center`}
       >
-        <Text style={[styles.avatarText, { fontSize: config.fontSize }]}>
+        <Text className={`${config.fontSize} font-semibold text-purple-800`}>
           {initials}
         </Text>
       </View>
@@ -55,15 +47,3 @@ export const Avatar: React.FC<AvatarProps> = React.memo(
     );
   }
 );
-
-const styles = StyleSheet.create({
-  avatarPlaceholder: {
-    backgroundColor: colors.hex.purple200,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: {
-    fontWeight: "600",
-    color: colors.hex.purple800,
-  },
-});

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Pressable,
   ActivityIndicator,
   ScrollView,
@@ -70,8 +69,8 @@ export default function ProfileScreen() {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={styles.container}>
-          <View style={styles.loadingContainer}>
+        <View className="flex-1 bg-white pt-12">
+          <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color={colors.hex.purple600} />
           </View>
         </View>
@@ -82,23 +81,25 @@ export default function ProfileScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <View className="flex-1 bg-white pt-12">
         {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-200">
+          <Pressable onPress={() => router.back()} className="py-2 pr-3">
+            <Text className="text-base font-semibold text-purple-600">
+              ← Back
+            </Text>
           </Pressable>
-          <Text style={styles.title}>My Profile</Text>
-          <View style={styles.headerSpacer} />
+          <Text className="text-xl font-bold text-purple-900">My Profile</Text>
+          <View className="w-15" />
         </View>
 
         {/* Content */}
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.contentContainer}
+          className="flex-1"
+          contentContainerClassName="px-6 pt-8 pb-12 items-center"
         >
           {/* Avatar */}
-          <View style={styles.avatarContainer}>
+          <View className="mb-4">
             <Avatar
               fullName={profileState.full_name}
               avatarUrl={profileState.avatar_url}
@@ -107,10 +108,12 @@ export default function ProfileScreen() {
           </View>
 
           {/* Full Name */}
-          <Text style={styles.fullName}>{profileState.full_name}</Text>
+          <Text className="text-3xl font-bold text-purple-900 mb-8 text-center">
+            {profileState.full_name}
+          </Text>
 
           {/* Info Sections */}
-          <View style={styles.infoSection}>
+          <View className="w-full mb-8">
             {/* Phone Number */}
             {profileState.phone_number && (
               <InfoRow label="Phone Number" value={profileState.phone_number} />
@@ -146,7 +149,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Edit Button */}
-          <View style={styles.buttonContainer}>
+          <View className="w-full mt-2">
             <Button
               onPress={() => router.push("/edit-profile")}
               variant="primary"
@@ -160,68 +163,3 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.hex.white,
-    paddingTop: 50,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingRight: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.hex.purple600,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.hex.purple900,
-  },
-  headerSpacer: {
-    width: 60,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 48,
-    alignItems: "center",
-  },
-  avatarContainer: {
-    marginBottom: 16,
-  },
-  fullName: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.hex.purple900,
-    marginBottom: 32,
-    textAlign: "center",
-  },
-  infoSection: {
-    width: "100%",
-    marginBottom: 32,
-  },
-  buttonContainer: {
-    width: "100%",
-    marginTop: 8,
-  },
-});

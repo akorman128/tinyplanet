@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import { colors } from "./colors";
 
 export interface InfoRowProps {
@@ -16,14 +16,16 @@ export function InfoRow({
   className = "",
 }: InfoRowProps) {
   return (
-    <View style={[styles.container, className ? { className } : null]}>
-      <Text style={styles.label}>{label}</Text>
+    <View className={`w-full mb-4 py-4 px-5 bg-gray-50 rounded-xl ${className}`}>
+      <Text className="text-xs font-semibold text-[#9ca3af] mb-1.5 uppercase tracking-wide">
+        {label}
+      </Text>
       {loading ? (
         <ActivityIndicator size="small" color={colors.hex.purple600} />
       ) : (
         <>
           {typeof value === "string" ? (
-            <Text style={styles.value}>{value}</Text>
+            <Text className="text-base font-medium text-[#1e1b4b]">{value}</Text>
           ) : (
             value
           )}
@@ -32,27 +34,3 @@ export function InfoRow({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    marginBottom: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    backgroundColor: "#f9fafb",
-    borderRadius: 12,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.hex.placeholder,
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  value: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: colors.hex.purple900,
-  },
-});

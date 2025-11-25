@@ -1,11 +1,5 @@
 import React, { forwardRef, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  Pressable,
-} from "react-native";
+import { View, Text, ActivityIndicator, Pressable } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { colors, Avatar, InfoRow } from "@/design-system";
 import { reverseGeocode } from "@/utils/reverseGeocode";
@@ -100,11 +94,24 @@ export const UserDetailsSheet = forwardRef<
           snapPoints={["50%"]}
           enablePanDownToClose
           onChange={onSheetChange}
-          backgroundStyle={styles.bottomSheetBackground}
-          handleIndicatorStyle={styles.handleIndicator}
+          backgroundStyle={{
+            backgroundColor: colors.hex.white,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 5,
+          }}
+          handleIndicatorStyle={{
+            backgroundColor: colors.hex.placeholder,
+            width: 40,
+            height: 4,
+          }}
         >
-          <BottomSheetView style={styles.contentContainer}>
-            <View style={styles.loadingContainer}>
+          <BottomSheetView className="flex-1 px-6 pt-2 pb-6">
+            <View className="flex-1 justify-center items-center">
               <ActivityIndicator size="large" color={colors.hex.purple600} />
             </View>
           </BottomSheetView>
@@ -119,30 +126,56 @@ export const UserDetailsSheet = forwardRef<
         snapPoints={["50%"]}
         enablePanDownToClose
         onChange={onSheetChange}
-        backgroundStyle={styles.bottomSheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
+        backgroundStyle={{
+          backgroundColor: colors.hex.white,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 12,
+          elevation: 5,
+        }}
+        handleIndicatorStyle={{
+          backgroundColor: colors.hex.placeholder,
+          width: 40,
+          height: 4,
+        }}
       >
-        <BottomSheetView style={styles.contentContainer}>
-          <View style={styles.avatarContainer}>
+        <BottomSheetView className="flex-1 px-6 pt-2 pb-6 items-center">
+          <View className="mb-4">
             <Avatar fullName={fullName} avatarUrl={avatarUrl} />
           </View>
 
-          <Text style={styles.fullName}>{fullName}</Text>
+          <Text
+            className="text-2xl font-bold text-center mb-4"
+            style={{ color: colors.hex.purple900 }}
+          >
+            {fullName}
+          </Text>
 
           {hasVibes && (
-            <Pressable style={styles.vibeContainer} onPress={handleVibePress}>
-              <Text style={styles.vibeLabel}>
+            <Pressable className="mb-6 items-center w-full" onPress={handleVibePress}>
+              <Text
+                className="text-sm font-semibold uppercase mb-2"
+                style={{ color: colors.hex.placeholder, letterSpacing: 0.5 }}
+              >
                 Vibe ({totalVibeCount && totalVibeCount > 10 ? "10+" : totalVibeCount})
               </Text>
-              <View style={styles.emojiGrid}>
+              <View className="flex-row flex-wrap gap-4 justify-center">
                 {countEmojis(vibeEmojis)
                   .slice(0, 6)
                   .map(([emoji, count]) => (
-                    <View key={emoji} style={styles.emojiWithBadge}>
-                      <Text style={styles.vibeEmojis}>{emoji}</Text>
+                    <View key={emoji} className="relative">
+                      <Text className="text-[32px]">{emoji}</Text>
                       {count > 1 && (
-                        <View style={styles.countBadge}>
-                          <Text style={styles.countText}>{count}</Text>
+                        <View
+                          className="absolute -top-1 -right-1 rounded-full min-w-[20px] h-5 justify-center items-center px-1.5"
+                          style={{ backgroundColor: colors.hex.purple600 }}
+                        >
+                          <Text className="text-xs font-bold text-white">
+                            {count}
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -167,88 +200,3 @@ export const UserDetailsSheet = forwardRef<
 );
 
 UserDetailsSheet.displayName = "UserDetailsSheet";
-
-const styles = StyleSheet.create({
-  bottomSheetBackground: {
-    backgroundColor: colors.hex.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  handleIndicator: {
-    backgroundColor: colors.hex.placeholder,
-    width: 40,
-    height: 4,
-  },
-  contentContainer: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 24,
-    alignItems: "center",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarContainer: {
-    marginBottom: 16,
-  },
-  fullName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.hex.purple900,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  vibeContainer: {
-    marginBottom: 24,
-    alignItems: "center",
-    width: "100%",
-  },
-  vibeLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.hex.placeholder,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  emojiGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 16,
-    justifyContent: "center",
-  },
-  emojiWithBadge: {
-    position: "relative",
-  },
-  vibeEmojis: {
-    fontSize: 32,
-  },
-  countBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    backgroundColor: colors.hex.purple600,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 6,
-  },
-  countText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.hex.white,
-  },
-});

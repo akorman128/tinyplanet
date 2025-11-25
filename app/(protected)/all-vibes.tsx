@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   ActivityIndicator,
   Pressable,
@@ -56,22 +55,24 @@ export default function AllVibesScreen() {
   };
 
   const renderVibeItem = ({ item }: { item: VibeWithSender }) => (
-    <View style={styles.vibeItem}>
+    <View className="flex-row px-6 py-4 items-start">
       <Avatar
         fullName={item.giver.full_name}
         avatarUrl={item.giver.avatar_url || undefined}
         size="small"
       />
-      <View style={styles.vibeContent}>
-        <View style={styles.vibeHeader}>
-          <Text style={styles.giverName}>{item.giver.full_name}</Text>
-          <Text style={styles.timestamp}>
+      <View className="flex-1 ml-3">
+        <View className="flex-row justify-between items-center mb-2">
+          <Text className="text-base font-semibold text-purple-900">
+            {item.giver.full_name}
+          </Text>
+          <Text className="text-xs font-medium text-gray-400">
             {formatTimestamp(item.created_at)}
           </Text>
         </View>
-        <View style={styles.emojiRow}>
+        <View className="flex-row gap-2">
           {item.emojis.map((emoji, index) => (
-            <Text key={index} style={styles.emoji}>
+            <Text key={index} className="text-2xl">
               {emoji}
             </Text>
           ))}
@@ -83,139 +84,43 @@ export default function AllVibesScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
+      <View className="flex-1 bg-white pt-12">
         {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.backButton}>
-            <Text style={styles.backButtonText}>← Back</Text>
+        <View className="flex-row justify-between items-center px-6 py-4 border-b border-gray-100">
+          <Pressable onPress={() => router.back()} className="py-2 pr-3">
+            <Text className="text-base font-semibold text-purple-600">
+              ← Back
+            </Text>
           </Pressable>
-          <Text style={styles.title}>All Vibes</Text>
-          <View style={styles.headerSpacer} />
+          <Text className="text-xl font-bold text-purple-900">All Vibes</Text>
+          <View className="w-15" />
         </View>
 
         {/* Content */}
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color={colors.hex.purple600} />
           </View>
         ) : error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View className="flex-1 justify-center items-center px-6">
+            <Text className="text-base text-gray-400 text-center">{error}</Text>
           </View>
         ) : vibes.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No vibes yet</Text>
+          <View className="flex-1 justify-center items-center">
+            <Text className="text-base text-gray-400">No vibes yet</Text>
           </View>
         ) : (
           <FlatList
             data={vibes}
             renderItem={renderVibeItem}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
+            contentContainerStyle={{ paddingVertical: 16 }}
+            ItemSeparatorComponent={() => (
+              <View className="h-px bg-gray-100 mx-6" />
+            )}
           />
         )}
       </View>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.hex.white,
-    paddingTop: 50,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  backButton: {
-    paddingVertical: 8,
-    paddingRight: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.hex.purple600,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.hex.purple900,
-  },
-  headerSpacer: {
-    width: 60,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  errorText: {
-    fontSize: 16,
-    color: colors.hex.placeholder,
-    textAlign: "center",
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.hex.placeholder,
-  },
-  listContent: {
-    paddingVertical: 16,
-  },
-  vibeItem: {
-    flexDirection: "row",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    alignItems: "flex-start",
-  },
-  vibeContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  vibeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  giverName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.hex.purple900,
-  },
-  timestamp: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: colors.hex.placeholder,
-  },
-  emojiRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  emoji: {
-    fontSize: 24,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#f0f0f0",
-    marginHorizontal: 24,
-  },
-});
