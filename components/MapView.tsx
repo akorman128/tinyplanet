@@ -69,6 +69,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       hometown?: string;
     } | null>(null);
     const [sheetLoading, setSheetLoading] = useState(false);
+    const [vibesLoading, setVibesLoading] = useState(false);
 
     // Convert user location object to [longitude, latitude] tuple for Mapbox
     const userLocation: [number, number] | null = userLocationObj
@@ -236,108 +237,80 @@ export const MapView: React.FC<MapViewProps> = React.memo(
           console.log(`[MapView] User: ${userName} (${userId})`);
           console.log(`[MapView] Coordinates: (${longitude}, ${latitude})`);
 
-          // Show basic info immediately
-          const sheetOpenTime = Date.now();
+          // PHASE 1: Show sheet immediately with marker data (0ms)
           setSelectedUser({
             id: userId,
             fullName: userName,
             latitude,
             longitude,
           });
-          setSheetLoading(true);
+          setSheetLoading(false);
+          setVibesLoading(true);
           bottomSheetRef.current?.snapToIndex(0);
-          const sheetOpenDuration = Date.now() - sheetOpenTime;
-          console.log(`[MapView] Sheet opened in ${sheetOpenDuration}ms`);
 
-          try {
-            // Fetch user profile, vibes, and geocoding in parallel
-            console.log(
-              "[MapView] Starting parallel fetch for profile, vibes, and geocoding"
-            );
-            const parallelFetchStart = Date.now();
+          const sheetOpenTime = Date.now() - markerPressTime;
+          console.log(`[MapView] Sheet opened in ${sheetOpenTime}ms`);
 
-            // Start all requests with individual timing
-            const profileStart = Date.now();
-            const profilePromise = getProfile({ userId })
-              .then((result) => {
-                const profileDuration = Date.now() - profileStart;
-                console.log(
-                  `[MapView] Profile fetch completed in ${profileDuration}ms`
-                );
-                return result;
-              })
-              .catch((err) => {
-                const profileDuration = Date.now() - profileStart;
-                console.error(
-                  `[MapView] Profile fetch FAILED after ${profileDuration}ms:`,
-                  err
-                );
-                throw err;
-              });
+          // PHASE 2: Fetch profile data in background (avatar, hometown)
+          (async () => {
+            try {
+              console.log("[MapView] Fetching profile data");
+              const profileStart = Date.now();
+              const profile = await getProfile({ userId });
+              const profileDuration = Date.now() - profileStart;
+              console.log(
+                `[MapView] Profile fetch completed in ${profileDuration}ms`
+              );
 
-            const vibesStart = Date.now();
-            const vibesPromise = getVibes({ recipientId: userId })
-              .then((result) => {
-                const vibesDuration = Date.now() - vibesStart;
-                console.log(
-                  `[MapView] Vibes fetch completed in ${vibesDuration}ms`
-                );
-                return result;
-              })
-              .catch((err) => {
-                const vibesDuration = Date.now() - vibesStart;
-                console.error(
-                  `[MapView] Vibes fetch FAILED after ${vibesDuration}ms:`,
-                  err
-                );
-                throw err;
-              });
+              // Update with profile data
+              setSelectedUser((prev) => ({
+                ...prev!,
+                avatarUrl: profile.avatar_url,
+                hometown: profile.hometown,
+              }));
 
-            const geocodePromise = reverseGeocode(longitude, latitude).catch(
-              (err) => {
-                console.error("[MapView] Geocoding prefetch error:", err);
-              }
-            );
+              const profileUpdateTime = Date.now() - markerPressTime;
+              console.log(
+                `[MapView] Profile updated in ${profileUpdateTime}ms`
+              );
+            } catch (err) {
+              console.error("Error loading profile:", err);
+            }
+          })();
 
-            const [profile, vibesResult] = await Promise.all([
-              profilePromise,
-              vibesPromise,
-              geocodePromise,
-            ]);
+          // PHASE 3: Fetch vibes data in background (slowest)
+          (async () => {
+            try {
+              console.log("[MapView] Fetching vibes data");
+              const vibesStart = Date.now();
+              const vibesResult = await getVibes({ recipientId: userId });
+              const vibesDuration = Date.now() - vibesStart;
+              console.log(
+                `[MapView] Vibes fetch completed in ${vibesDuration}ms`
+              );
 
-            const parallelFetchDuration = Date.now() - parallelFetchStart;
-            console.log(
-              `[MapView] Parallel fetch completed in ${parallelFetchDuration}ms (total wall time)`
-            );
+              // Get all emojis from vibes (flatten the array of emoji arrays)
+              const allEmojis = vibesResult.data.flatMap(
+                (vibe) => vibe.emojis
+              );
 
-            // Get all emojis from vibes (flatten the array of emoji arrays)
-            const allEmojis = vibesResult.data.flatMap((vibe) => vibe.emojis);
+              // Update with vibes data
+              setSelectedUser((prev) => ({
+                ...prev!,
+                vibeEmojis: allEmojis.length > 0 ? allEmojis : undefined,
+                totalVibeCount: vibesResult.data.length,
+              }));
 
-            // Update with complete data
-            setSelectedUser({
-              id: userId,
-              fullName: profile.full_name,
-              avatarUrl: profile.avatar_url,
-              vibeEmojis: allEmojis.length > 0 ? allEmojis : undefined,
-              totalVibeCount: vibesResult.data.length,
-              latitude,
-              longitude,
-              hometown: profile.hometown,
-            });
-
-            const totalTime = Date.now() - markerPressTime;
-            console.log(
-              `[MapView] ========== TOTAL TIME: ${totalTime}ms ==========\n`
-            );
-          } catch (err) {
-            console.error("Error loading user details:", err);
-            const totalTime = Date.now() - markerPressTime;
-            console.log(
-              `[MapView] ========== FAILED after ${totalTime}ms ==========\n`
-            );
-          } finally {
-            setSheetLoading(false);
-          }
+              const totalTime = Date.now() - markerPressTime;
+              console.log(
+                `[MapView] ========== TOTAL TIME: ${totalTime}ms ==========\n`
+              );
+            } catch (err) {
+              console.error("Error loading vibes:", err);
+            } finally {
+              setVibesLoading(false);
+            }
+          })();
         }
       },
       [getProfile, getVibes]
@@ -612,6 +585,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               longitude={selectedUser.longitude}
               hometown={selectedUser.hometown}
               loading={sheetLoading}
+              vibesLoading={vibesLoading}
               onSheetChange={handleSheetChange}
             />
           )}

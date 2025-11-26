@@ -11,9 +11,12 @@ import { colors, Avatar, Button, InfoRow, ScreenHeader } from "@/design-system";
 import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "@/hooks/useProfile";
 import { useVibe } from "@/hooks/useVibe";
+import { useFriends } from "@/hooks/useFriends";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { Profile } from "@/types/profile";
+import { Friendship, FriendshipStatus } from "@/types/friendship";
 import { VibeDisplay } from "@/components/VibeDisplay";
+import { FriendStatusSection } from "@/components/FriendStatusSection";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -21,6 +24,13 @@ export default function ProfileScreen() {
   const { profileState } = useProfileStore();
   const { getProfile } = useProfile();
   const { getVibes, isLoaded: vibeIsLoaded } = useVibe();
+  const {
+    getFriendshipStatus,
+    sendFriendRequest,
+    acceptFriendRequest,
+    declineFriendRequest,
+    unfriend,
+  } = useFriends();
 
   const [otherUserProfile, setOtherUserProfile] = useState<Profile | null>(
     null
@@ -34,6 +44,11 @@ export default function ProfileScreen() {
   const [vibeEmojis, setVibeEmojis] = useState<string[]>([]);
   const [totalVibeCount, setTotalVibeCount] = useState(0);
   const [vibesLoading, setVibesLoading] = useState(false);
+  const [friendshipStatus, setFriendshipStatus] = useState<
+    "loading" | "not_friends" | "friends" | "pending_sent" | "pending_received"
+  >("loading");
+  const [mutualCount, setMutualCount] = useState(0);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Determine which profile to display
   const isViewingOwnProfile = !userId;
@@ -59,6 +74,28 @@ export default function ProfileScreen() {
 
     fetchOtherUserProfile();
   }, [userId, getProfile]);
+
+  // Fetch friendship status and mutual friends
+  useEffect(() => {
+    const fetchFriendshipData = async () => {
+      if (!userId || !profileState?.id || isViewingOwnProfile) {
+        setFriendshipStatus("not_friends");
+        return;
+      }
+
+      setFriendshipStatus("loading");
+      try {
+        const result = await getFriendshipStatus(userId);
+        setFriendshipStatus(result.status);
+        setMutualCount(result.mutualCount);
+      } catch (err) {
+        console.error("Error fetching friendship data:", err);
+        setFriendshipStatus("not_friends");
+      }
+    };
+
+    fetchFriendshipData();
+  }, [userId, profileState?.id, isViewingOwnProfile, getFriendshipStatus]);
 
   // Fetch vibes for the displayed profile
   useEffect(() => {
@@ -134,13 +171,83 @@ export default function ProfileScreen() {
     }
   };
 
+  // Friend action handlers
+  const handleAddFriend = async () => {
+    if (!userId || !profileState?.id) return;
+
+    setActionLoading(true);
+    try {
+      await sendFriendRequest({
+        targetUserId: userId,
+      });
+      setFriendshipStatus("pending_sent");
+    } catch (err) {
+      console.error("Error sending friend request:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      alert(`Failed to send friend request: ${errorMessage}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnfriend = async () => {
+    if (!userId || !profileState?.id) return;
+
+    setActionLoading(true);
+    try {
+      await unfriend({
+        targetUserId: userId,
+      });
+      setFriendshipStatus("not_friends");
+    } catch (err) {
+      console.error("Error unfriending:", err);
+      alert("Failed to unfriend. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAcceptRequest = async () => {
+    if (!userId || !profileState?.id) return;
+
+    setActionLoading(true);
+    try {
+      await acceptFriendRequest({
+        fromUserId: userId,
+      });
+      setFriendshipStatus("friends");
+    } catch (err) {
+      console.error("Error accepting friend request:", err);
+      alert("Failed to accept friend request. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    if (!userId || !profileState?.id) return;
+
+    setActionLoading(true);
+    try {
+      await declineFriendRequest({
+        targetUserId: userId,
+      });
+      setFriendshipStatus("not_friends");
+    } catch (err) {
+      console.error("Error declining friend request:", err);
+      alert("Failed to decline friend request. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Loading state
   if (loading || (!isViewingOwnProfile && !otherUserProfile)) {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-white pt-12">
-          <ScreenHeader title="Profile" showBackButton={!isViewingOwnProfile} />
+          <ScreenHeader title="Profile" showBackButton={true} />
           <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color={colors.hex.purple600} />
           </View>
@@ -155,7 +262,7 @@ export default function ProfileScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-white pt-12">
-          <ScreenHeader title="Profile" showBackButton={!isViewingOwnProfile} />
+          <ScreenHeader title="Profile" showBackButton={true} />
           <View className="flex-1 justify-center items-center px-6">
             <Text className="text-base text-gray-400 text-center">
               {error || "Profile not found"}
@@ -173,7 +280,7 @@ export default function ProfileScreen() {
         {/* Header */}
         <ScreenHeader
           title={isViewingOwnProfile ? "My Profile" : "Profile"}
-          showBackButton={!isViewingOwnProfile}
+          showBackButton={true}
         />
 
         {/* Content */}
@@ -190,10 +297,30 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* Full Name */}
-          <Text className="text-3xl font-bold text-purple-900 mb-8 text-center">
-            {displayProfile.full_name}
-          </Text>
+          {/* Full Name with Friend Status Icon */}
+          <View className="flex-row items-center justify-center mb-2">
+            <Text className="text-3xl font-bold text-purple-900 text-center">
+              {displayProfile.full_name}
+            </Text>
+            {!isViewingOwnProfile && (
+              <FriendStatusSection
+                status={friendshipStatus}
+                mutualCount={mutualCount}
+                onAddFriend={handleAddFriend}
+                onUnfriend={handleUnfriend}
+                onAccept={handleAcceptRequest}
+                onDecline={handleDeclineRequest}
+                actionLoading={actionLoading}
+              />
+            )}
+          </View>
+
+          {/* Mutual Friends Count - only show for other users' profiles */}
+          {!isViewingOwnProfile && mutualCount > 0 && (
+            <Text className="text-sm text-gray-500 mb-4">
+              {mutualCount === 1 ? "1 mutual friend" : `${mutualCount} mutual friends`}
+            </Text>
+          )}
 
           {/* Vibes */}
           {vibeEmojis.length > 0 && (

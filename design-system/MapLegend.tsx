@@ -1,7 +1,8 @@
 import React from "react";
 import { View, Switch } from "react-native";
-import { Caption, colors } from "@/design-system";
-import { Icons } from "@/design-system/Icons";
+import { Caption } from "./Typography";
+import { colors } from "./colors";
+import { Icons } from "./Icons";
 
 export interface MapLegendProps {
   showLines: boolean;

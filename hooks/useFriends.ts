@@ -210,6 +210,50 @@ export const useFriends = () => {
   };
 
   /**
+   * Gets the friendship status with a specific user
+   * Returns the status and mutual friends count in a single optimized query
+   */
+  const getFriendshipStatus = async (targetUserId: string): Promise<{
+    status: "loading" | "not_friends" | "friends" | "pending_sent" | "pending_received";
+    mutualCount: number;
+  }> => {
+    if (!profileState) {
+      throw new Error("Profile not loaded - cannot check friendship status");
+    }
+
+    const userId = profileState.id;
+    const [user_a, user_b] = orderUserIds(userId, targetUserId);
+
+    // Single query to check friendship status
+    const { data: friendship, error } = await supabase
+      .from("friendships")
+      .select("status, requested_by")
+      .eq("user_a", user_a)
+      .eq("user_b", user_b)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // Get mutual friends count
+    const mutualsResult = await getMutuals({ targetUserId });
+
+    let status: "not_friends" | "friends" | "pending_sent" | "pending_received" = "not_friends";
+
+    if (friendship) {
+      if (friendship.status === FriendshipStatus.ACCEPTED) {
+        status = "friends";
+      } else if (friendship.status === FriendshipStatus.PENDING) {
+        status = friendship.requested_by === userId ? "pending_sent" : "pending_received";
+      }
+    }
+
+    return {
+      status,
+      mutualCount: mutualsResult.data.length,
+    };
+  };
+
+  /**
    * Gets all pending friend requests (incoming and outgoing)
    */
   const getPendingRequests = async (): Promise<GetPendingRequestsOutput> => {
@@ -282,9 +326,10 @@ export const useFriends = () => {
 
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
-    const { data, error } = await supabase
+    // First try to insert a new friendship
+    const { data: insertData, error: insertError } = await supabase
       .from("friendships")
-      .upsert({
+      .insert({
         user_a,
         user_b,
         requested_by: userId,
@@ -294,8 +339,80 @@ export const useFriends = () => {
       .select()
       .single();
 
-    if (error) throw error;
-    return { data };
+    // If insert succeeds, return the data
+    if (!insertError) {
+      return { data: insertData };
+    }
+
+    // If we got a duplicate key error (23505), the friendship already exists
+    // This could be in any status (pending, accepted, declined)
+    if (insertError.code === "23505") {
+      // Try updating with both possible orderings to handle any data inconsistency
+      const { data: updateData, error: updateError } = await supabase
+        .from("friendships")
+        .update({
+          requested_by: userId,
+          status: FriendshipStatus.PENDING,
+          accepted_at: null,
+        })
+        .or(`and(user_a.eq.${user_a},user_b.eq.${user_b}),and(user_a.eq.${user_b},user_b.eq.${user_a})`)
+        .select()
+        .maybeSingle();
+
+      if (updateError) {
+        console.error("[useFriends] sendFriendRequest update error:", {
+          error: updateError,
+          errorMessage: updateError.message,
+          errorCode: updateError.code,
+          userId,
+          targetUserId,
+          user_a,
+          user_b,
+        });
+        throw new Error(
+          "A friendship record already exists but cannot be updated. This user may have already sent you a friend request."
+        );
+      }
+
+      // If no rows were updated (PGRST116 or updateData is null),
+      // the record exists but RLS won't let us see/update it
+      if (!updateData) {
+        console.warn("[useFriends] Friendship exists but cannot be accessed via RLS", {
+          userId,
+          targetUserId,
+          user_a,
+          user_b,
+          authUid: "Should match userId in client",
+        });
+
+        // Try to fetch all pending requests to see if it's there
+        const { data: checkRequests } = await supabase
+          .from("friendships")
+          .select("*")
+          .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+          .eq("status", FriendshipStatus.PENDING);
+
+        console.log("[useFriends] Current user's pending friendships:", checkRequests);
+
+        throw new Error(
+          "A friendship request already exists between you and this user. The other user may have already sent you a request - try refreshing the page."
+        );
+      }
+
+      return { data: updateData };
+    }
+
+    // If it's a different error, throw it
+    console.error("[useFriends] sendFriendRequest insert error:", {
+      error: insertError,
+      errorMessage: insertError.message,
+      errorCode: insertError.code,
+      userId,
+      targetUserId,
+      user_a,
+      user_b,
+    });
+    throw insertError;
   };
 
   const acceptFriendRequest = async (
@@ -399,6 +516,7 @@ export const useFriends = () => {
     getFriendLocations,
     searchFriendsAndMutuals,
     getPendingRequests,
+    getFriendshipStatus,
     sendFriendRequest,
     acceptFriendRequest,
     declineFriendRequest,

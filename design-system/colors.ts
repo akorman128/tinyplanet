@@ -15,13 +15,13 @@ export const colors = {
 
   // Neutral colors
   neutral: {
-    50: "gray-50", // Subtle backgrounds, hover states
-    300: "gray-300", // Borders, dividers
-    400: "gray-400", // Placeholders, disabled text
-    500: "gray-500", // Captions, secondary text
-    600: "gray-600", // Subheadings, secondary content
-    700: "gray-700", // Labels, form labels
-    900: "gray-900", // Body text, primary content
+    gray50: "gray-50", // Subtle backgrounds, hover states
+    gray300: "gray-300", // Borders, dividers
+    gray400: "gray-400", // Placeholders, disabled text
+    gray500: "gray-500", // Captions, secondary text
+    gray600: "gray-600", // Subheadings, secondary content
+    gray700: "gray-700", // Labels, form labels
+    gray900: "gray-900", // Body text, primary content
   },
 
   // Semantic colors

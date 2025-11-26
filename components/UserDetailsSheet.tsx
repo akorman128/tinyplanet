@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useState } from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator, Pressable } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { colors, Avatar, InfoRow } from "@/design-system";
 import { reverseGeocode } from "@/utils/reverseGeocode";
@@ -16,6 +16,7 @@ interface UserDetailsSheetProps {
   longitude?: number;
   hometown?: string;
   loading?: boolean;
+  vibesLoading?: boolean;
   onSheetChange?: (index: number) => void;
 }
 
@@ -34,6 +35,7 @@ export const UserDetailsSheet = forwardRef<
       longitude,
       hometown,
       loading = false,
+      vibesLoading = false,
       onSheetChange,
     },
     ref
@@ -82,6 +84,12 @@ export const UserDetailsSheet = forwardRef<
     const handleVibePress = () => {
       if (userId) {
         router.push({ pathname: "/all-vibes", params: { userId } });
+      }
+    };
+
+    const handleAvatarPress = () => {
+      if (userId) {
+        router.push({ pathname: "/profile", params: { userId } });
       }
     };
 
@@ -142,9 +150,9 @@ export const UserDetailsSheet = forwardRef<
         }}
       >
         <BottomSheetView className="flex-1 px-6 pt-2 pb-6 items-center">
-          <View className="mb-4">
+          <Pressable onPress={handleAvatarPress} className="mb-4">
             <Avatar fullName={fullName} avatarUrl={avatarUrl} />
-          </View>
+          </Pressable>
 
           <Text
             className="text-2xl font-bold text-center mb-4"
@@ -153,13 +161,20 @@ export const UserDetailsSheet = forwardRef<
             {fullName}
           </Text>
 
-          {vibeEmojis && vibeEmojis.length > 0 && (
-            <VibeDisplay
-              vibeEmojis={vibeEmojis}
-              totalVibeCount={totalVibeCount}
-              onPress={handleVibePress}
-              maxDisplay={6}
-            />
+          {vibesLoading ? (
+            <View className="mb-4">
+              <ActivityIndicator size="small" color={colors.hex.purple600} />
+            </View>
+          ) : (
+            vibeEmojis &&
+            vibeEmojis.length > 0 && (
+              <VibeDisplay
+                vibeEmojis={vibeEmojis}
+                totalVibeCount={totalVibeCount}
+                onPress={handleVibePress}
+                maxDisplay={6}
+              />
+            )
           )}
 
           {hasLocation && (
