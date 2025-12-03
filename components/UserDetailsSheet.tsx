@@ -15,15 +15,13 @@ interface UserDetailsSheetProps {
   latitude?: number;
   longitude?: number;
   hometown?: string;
+  birthday?: string;
   loading?: boolean;
   vibesLoading?: boolean;
   onSheetChange?: (index: number) => void;
 }
 
-export const UserDetailsSheet = forwardRef<
-  BottomSheet,
-  UserDetailsSheetProps
->(
+export const UserDetailsSheet = forwardRef<BottomSheet, UserDetailsSheetProps>(
   (
     {
       userId,
@@ -34,6 +32,7 @@ export const UserDetailsSheet = forwardRef<
       latitude,
       longitude,
       hometown,
+      birthday,
       loading = false,
       vibesLoading = false,
       onSheetChange,
@@ -80,6 +79,16 @@ export const UserDetailsSheet = forwardRef<
     }, [latitude, longitude]);
 
     const hasLocation = latitude !== undefined && longitude !== undefined;
+
+    const formatBirthday = (birthday: string | undefined) => {
+      if (!birthday) return null;
+      const date = new Date(birthday);
+      return date.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+    };
 
     const handleVibePress = () => {
       if (userId) {
@@ -150,16 +159,18 @@ export const UserDetailsSheet = forwardRef<
         }}
       >
         <BottomSheetView className="flex-1 px-6 pt-2 pb-6 items-center">
-          <Pressable onPress={handleAvatarPress} className="mb-4">
-            <Avatar fullName={fullName} avatarUrl={avatarUrl} />
-          </Pressable>
-
-          <Text
-            className="text-2xl font-bold text-center mb-4"
-            style={{ color: colors.hex.purple900 }}
+          <Pressable
+            onPress={handleAvatarPress}
+            className="mb-4 items-center p-2"
           >
-            {fullName}
-          </Text>
+            <Avatar fullName={fullName} avatarUrl={avatarUrl} />
+            <Text
+              className="text-2xl font-bold text-center mb-4"
+              style={{ color: colors.hex.purple900 }}
+            >
+              {fullName}
+            </Text>
+          </Pressable>
 
           {vibesLoading ? (
             <View className="mb-4">
@@ -175,6 +186,10 @@ export const UserDetailsSheet = forwardRef<
                 maxDisplay={6}
               />
             )
+          )}
+
+          {birthday && (
+            <InfoRow label="Birthday" value={formatBirthday(birthday) || ""} />
           )}
 
           {hasLocation && (

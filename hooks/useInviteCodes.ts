@@ -1,11 +1,11 @@
-import { useProfileStore } from "../stores/profileStore";
+import { useRequireProfile } from "./useRequireProfile";
 import { useSupabase } from "./useSupabase";
 import { InviteCode, InviteCodeStatus } from "../types/invite_code";
 import { generateInviteCode } from "../utils/inviteCode";
 
 export const useInviteCodes = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
 
   // ––– QUERIES –––
 
@@ -72,17 +72,13 @@ export const useInviteCodes = () => {
   ): Promise<createInviteCodeOutputDto> => {
     const { code: providedCode, expires_at } = input;
 
-    if (!profileState?.id) {
-      throw new Error("User must be authenticated to create invite codes");
-    }
-
     // If code is provided, use it directly (no retry)
     if (providedCode) {
       const { data, error } = await supabase
         .from("invite_codes")
         .insert({
           code: providedCode,
-          inviter_id: profileState.id,
+          inviter_id: profile.id,
           status: "active",
           expires_at,
         })
@@ -109,7 +105,7 @@ export const useInviteCodes = () => {
         .from("invite_codes")
         .insert({
           code: generatedCode,
-          inviter_id: profileState.id,
+          inviter_id: profile.id,
           status: "active",
           expires_at,
         })
@@ -166,7 +162,7 @@ export const useInviteCodes = () => {
       body: {
         phone_number,
         invite_code,
-        inviter_name: inviter_name || profileState!.full_name,
+        inviter_name: inviter_name || profile.full_name,
       },
     });
 
@@ -258,10 +254,6 @@ export const useInviteCodes = () => {
 
   // Get count of invite codes created this month
   const getInviteCountThisMonth = async (): Promise<number> => {
-    if (!profileState?.id) {
-      return 0;
-    }
-
     // Calculate start of current month
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -269,7 +261,7 @@ export const useInviteCodes = () => {
 
     const { data } = await getInviteCodes({
       filters: {
-        userId: profileState.id,
+        userId: profile.id,
         startDate: startOfMonth,
         endDate: endOfMonth,
       },

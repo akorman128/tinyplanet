@@ -1,27 +1,34 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ActivityIndicator,
-  ScrollView,
-} from "react-native";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { View, Pressable, ScrollView } from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
-import { colors, Avatar, Button, InfoRow, ScreenHeader } from "@/design-system";
-import { useProfileStore } from "@/stores/profileStore";
+import {
+  Avatar,
+  Button,
+  InfoRow,
+  ScreenHeader,
+  Badge,
+  LoadingState,
+  ErrorState,
+  Heading,
+} from "@/design-system";
+import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { useProfile } from "@/hooks/useProfile";
 import { useVibe } from "@/hooks/useVibe";
 import { useFriends } from "@/hooks/useFriends";
 import { reverseGeocode } from "@/utils/reverseGeocode";
+import { formatBirthday } from "@/utils";
 import { Profile } from "@/types/profile";
-import { Friendship, FriendshipStatus } from "@/types/friendship";
+import { FriendshipDisplayStatus } from "@/types/friendship";
 import { VibeDisplay } from "@/components/VibeDisplay";
 import { FriendStatusSection } from "@/components/FriendStatusSection";
+
+// Constants
+const MAX_VIBES_DISPLAY = 6;
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams<{ userId?: string }>();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
   const { getProfile } = useProfile();
   const { getVibes, isLoaded: vibeIsLoaded } = useVibe();
   const {
@@ -45,197 +52,191 @@ export default function ProfileScreen() {
   const [totalVibeCount, setTotalVibeCount] = useState(0);
   const [vibesLoading, setVibesLoading] = useState(false);
   const [friendshipStatus, setFriendshipStatus] = useState<
-    "loading" | "not_friends" | "friends" | "pending_sent" | "pending_received"
+    FriendshipDisplayStatus | "loading"
   >("loading");
   const [mutualCount, setMutualCount] = useState(0);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Determine which profile to display
-  const isViewingOwnProfile = !userId;
-  const displayProfile = isViewingOwnProfile ? profileState : otherUserProfile;
+  // Determine which profile to display (memoized)
+  const isViewingOwnProfile = useMemo(() => !userId, [userId]);
+  const displayProfile = useMemo(
+    () => (isViewingOwnProfile ? profile : otherUserProfile),
+    [isViewingOwnProfile, profile, otherUserProfile]
+  );
 
   // Fetch other user's profile if userId is provided
+  const fetchOtherUserProfile = useCallback(async () => {
+    if (!userId) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const profile = await getProfile({ userId });
+      setOtherUserProfile(profile);
+    } catch (err) {
+      setError("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   useEffect(() => {
-    const fetchOtherUserProfile = async () => {
-      if (!userId) return;
-
-      setLoading(true);
-      setError(null);
-      try {
-        const profile = await getProfile({ userId });
-        setOtherUserProfile(profile);
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-        setError("Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOtherUserProfile();
-  }, [userId, getProfile]);
+  }, [fetchOtherUserProfile]);
 
-  // Fetch friendship status and mutual friends
+  // Fetch friendship status and set mutual count from profile
+  const fetchFriendshipData = useCallback(async () => {
+    if (!displayProfile?.id || isViewingOwnProfile) {
+      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+      setMutualCount(0);
+      return;
+    }
+
+    setFriendshipStatus("loading");
+    try {
+      const statusResult = await getFriendshipStatus(displayProfile.id);
+      setFriendshipStatus(statusResult.status);
+      // Use mutual_friend_count from the profile data (returned by RPC)
+      setMutualCount(displayProfile.mutual_friend_count ?? 0);
+    } catch (err) {
+      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+      setMutualCount(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayProfile?.id, displayProfile?.mutual_friend_count, isViewingOwnProfile]);
+
   useEffect(() => {
-    const fetchFriendshipData = async () => {
-      if (!userId || !profileState?.id || isViewingOwnProfile) {
-        setFriendshipStatus("not_friends");
-        return;
-      }
-
-      setFriendshipStatus("loading");
-      try {
-        const result = await getFriendshipStatus(userId);
-        setFriendshipStatus(result.status);
-        setMutualCount(result.mutualCount);
-      } catch (err) {
-        console.error("Error fetching friendship data:", err);
-        setFriendshipStatus("not_friends");
-      }
-    };
-
     fetchFriendshipData();
-  }, [userId, profileState?.id, isViewingOwnProfile, getFriendshipStatus]);
+  }, [fetchFriendshipData]);
 
   // Fetch vibes for the displayed profile
+  const fetchVibes = useCallback(async () => {
+    if (!displayProfile?.id || !vibeIsLoaded) return;
+
+    setVibesLoading(true);
+    try {
+      const result = await getVibes({ recipientId: displayProfile.id });
+      const allEmojis = result.data.flatMap((vibe) => vibe.emojis);
+      setVibeEmojis(allEmojis);
+      setTotalVibeCount(result.data.length);
+    } catch (err) {
+      // Silently fail for vibes
+    } finally {
+      setVibesLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayProfile?.id, vibeIsLoaded]);
+
   useEffect(() => {
-    const fetchVibes = async () => {
-      if (!displayProfile?.id || !vibeIsLoaded) return;
-
-      setVibesLoading(true);
-      try {
-        const result = await getVibes({ recipientId: displayProfile.id });
-        const allEmojis = result.data.flatMap((vibe) => vibe.emojis);
-        setVibeEmojis(allEmojis);
-        setTotalVibeCount(result.data.length);
-      } catch (err) {
-        console.error("Error fetching vibes:", err);
-        // Don't show error for vibes, just log it
-      } finally {
-        setVibesLoading(false);
-      }
-    };
-
     fetchVibes();
-  }, [displayProfile?.id, getVibes, vibeIsLoaded]);
+  }, [fetchVibes]);
 
   // Reverse geocode location when it changes
-  useEffect(() => {
-    const geocodeLocation = async () => {
-      if (
-        !displayProfile?.latitude ||
-        !displayProfile?.longitude ||
-        displayProfile.latitude === undefined ||
-        displayProfile.longitude === undefined
-      ) {
-        setHumanReadableLocation(null);
-        return;
-      }
+  const geocodeLocation = useCallback(async () => {
+    if (!displayProfile?.latitude || !displayProfile?.longitude) {
+      setHumanReadableLocation(null);
+      return;
+    }
 
-      setGeocoding(true);
-      try {
-        const result = await reverseGeocode(
-          displayProfile.longitude,
-          displayProfile.latitude,
-          (freshData) => {
-            setHumanReadableLocation(freshData.formattedAddress);
-          }
-        );
-        setHumanReadableLocation(result.formattedAddress);
-      } catch (error) {
-        console.error("Failed to geocode location:", error);
-        setHumanReadableLocation(
-          `${displayProfile.latitude.toFixed(4)}, ${displayProfile.longitude.toFixed(4)}`
-        );
-      } finally {
-        setGeocoding(false);
-      }
-    };
-
-    geocodeLocation();
+    setGeocoding(true);
+    try {
+      const result = await reverseGeocode(
+        displayProfile.longitude,
+        displayProfile.latitude,
+        (freshData) => {
+          setHumanReadableLocation(freshData.formattedAddress);
+        }
+      );
+      setHumanReadableLocation(result.formattedAddress);
+    } catch (error) {
+      setHumanReadableLocation(
+        `${displayProfile.latitude.toFixed(4)}, ${displayProfile.longitude.toFixed(4)}`
+      );
+    } finally {
+      setGeocoding(false);
+    }
   }, [displayProfile?.latitude, displayProfile?.longitude]);
 
-  const formatBirthday = (birthday: string | undefined) => {
-    if (!birthday) return "Not set";
-    const date = new Date(birthday);
-    return date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+  useEffect(() => {
+    geocodeLocation();
+  }, [geocodeLocation]);
 
   const handleVibePress = () => {
     if (displayProfile?.id) {
-      router.push({ pathname: "/all-vibes", params: { userId: displayProfile.id } });
+      router.push({
+        pathname: "/all-vibes",
+        params: { userId: displayProfile.id },
+      });
+    }
+  };
+
+  const handleMutualsPress = () => {
+    if (userId) {
+      router.push({ pathname: "/mutuals", params: { userId } });
     }
   };
 
   // Friend action handlers
   const handleAddFriend = async () => {
-    if (!userId || !profileState?.id) return;
+    if (!userId) return;
 
     setActionLoading(true);
     try {
       await sendFriendRequest({
         targetUserId: userId,
       });
-      setFriendshipStatus("pending_sent");
+      setFriendshipStatus(FriendshipDisplayStatus.PENDING_SENT);
     } catch (err) {
-      console.error("Error sending friend request:", err);
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      alert(`Failed to send friend request: ${errorMessage}`);
+      setError("Failed to send friend request");
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleUnfriend = async () => {
-    if (!userId || !profileState?.id) return;
+    if (!userId) return;
 
     setActionLoading(true);
     try {
       await unfriend({
         targetUserId: userId,
       });
-      setFriendshipStatus("not_friends");
+      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
     } catch (err) {
-      console.error("Error unfriending:", err);
-      alert("Failed to unfriend. Please try again.");
+      setError("Failed to unfriend");
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleAcceptRequest = async () => {
-    if (!userId || !profileState?.id) return;
+    if (!userId) return;
 
     setActionLoading(true);
     try {
       await acceptFriendRequest({
         fromUserId: userId,
       });
-      setFriendshipStatus("friends");
+      setFriendshipStatus(FriendshipDisplayStatus.FRIENDS);
     } catch (err) {
-      console.error("Error accepting friend request:", err);
-      alert("Failed to accept friend request. Please try again.");
+      setError("Failed to accept friend request");
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleDeclineRequest = async () => {
-    if (!userId || !profileState?.id) return;
+    if (!userId) return;
 
     setActionLoading(true);
     try {
       await declineFriendRequest({
         targetUserId: userId,
       });
-      setFriendshipStatus("not_friends");
+      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
     } catch (err) {
-      console.error("Error declining friend request:", err);
-      alert("Failed to decline friend request. Please try again.");
+      setError("Failed to decline friend request");
     } finally {
       setActionLoading(false);
     }
@@ -248,9 +249,7 @@ export default function ProfileScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-white pt-12">
           <ScreenHeader title="Profile" showBackButton={true} />
-          <View className="flex-1 justify-center items-center">
-            <ActivityIndicator size="large" color={colors.hex.purple600} />
-          </View>
+          <LoadingState />
         </View>
       </>
     );
@@ -263,11 +262,7 @@ export default function ProfileScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-white pt-12">
           <ScreenHeader title="Profile" showBackButton={true} />
-          <View className="flex-1 justify-center items-center px-6">
-            <Text className="text-base text-gray-400 text-center">
-              {error || "Profile not found"}
-            </Text>
-          </View>
+          <ErrorState message={error || "Profile not found"} />
         </View>
       </>
     );
@@ -299,13 +294,12 @@ export default function ProfileScreen() {
 
           {/* Full Name with Friend Status Icon */}
           <View className="flex-row items-center justify-center mb-2">
-            <Text className="text-3xl font-bold text-purple-900 text-center">
+            <Heading className="text-purple-900 text-center">
               {displayProfile.full_name}
-            </Text>
+            </Heading>
             {!isViewingOwnProfile && (
               <FriendStatusSection
                 status={friendshipStatus}
-                mutualCount={mutualCount}
                 onAddFriend={handleAddFriend}
                 onUnfriend={handleUnfriend}
                 onAccept={handleAcceptRequest}
@@ -315,11 +309,13 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Mutual Friends Count - only show for other users' profiles */}
+          {/* Mutual Friends Badge - only show for other users' profiles */}
           {!isViewingOwnProfile && mutualCount > 0 && (
-            <Text className="text-sm text-gray-500 mb-4">
-              {mutualCount === 1 ? "1 mutual friend" : `${mutualCount} mutual friends`}
-            </Text>
+            <Pressable onPress={handleMutualsPress} className="mb-4">
+              <Badge variant="secondary" size="small">
+                {mutualCount === 1 ? "1 mutual" : `${mutualCount} mutuals`}
+              </Badge>
+            </Pressable>
           )}
 
           {/* Vibes */}
@@ -328,7 +324,7 @@ export default function ProfileScreen() {
               vibeEmojis={vibeEmojis}
               totalVibeCount={totalVibeCount}
               onPress={handleVibePress}
-              maxDisplay={6}
+              maxDisplay={MAX_VIBES_DISPLAY}
             />
           )}
 

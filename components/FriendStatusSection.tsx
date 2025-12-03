@@ -1,15 +1,10 @@
 import React from "react";
 import { Pressable, ActionSheetIOS, Platform, Alert } from "react-native";
 import { Icons, colors } from "@/design-system";
+import { FriendshipDisplayStatus } from "@/types/friendship";
 
 type FriendStatusSectionProps = {
-  status:
-    | "loading"
-    | "not_friends"
-    | "friends"
-    | "pending_sent"
-    | "pending_received";
-  mutualCount: number;
+  status: FriendshipDisplayStatus | "loading";
   onAddFriend?: () => void;
   onUnfriend?: () => void;
   onAccept?: () => void;
@@ -110,32 +105,32 @@ export function FriendStatusSection({
 
   const iconConfig: IconConfig = (() => {
     switch (status) {
-      case "friends":
+      case FriendshipDisplayStatus.FRIENDS:
         return {
-          Icon: Icons.heartFill,
-          color: colors.hex.purple600,
+          Icon: Icons.circleCheck,
+          color: colors.neutral.gray400,
           onPress: handleUnfriend,
-          size: 20,
+          size: 32,
         };
-      case "not_friends":
+      case FriendshipDisplayStatus.NOT_FRIENDS:
         return {
           Icon: Icons.plus,
           color: colors.neutral.gray400,
           onPress: handleAddFriend,
-          size: 20,
+          size: 32,
         };
-      case "pending_sent":
+      case FriendshipDisplayStatus.PENDING_SENT:
         return {
           Icon: Icons.clock,
           color: colors.neutral.gray400,
-          size: 20,
+          size: 32,
         };
-      case "pending_received":
+      case FriendshipDisplayStatus.PENDING_RECEIVED:
         return {
           Icon: Icons.notification,
-          color: colors.hex.purple600,
+          color: colors.neutral.gray400,
           onPress: handlePendingReceived,
-          size: 20,
+          size: 32,
         };
     }
   })();

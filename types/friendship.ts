@@ -4,6 +4,13 @@ export enum FriendshipStatus {
   DECLINED = "declined",
 }
 
+export enum FriendshipDisplayStatus {
+  NOT_FRIENDS = "not_friends",
+  FRIENDS = "friends",
+  PENDING_SENT = "pending_sent",
+  PENDING_RECEIVED = "pending_received",
+}
+
 export interface Friendship {
   id: string;
   user_a: string;
@@ -85,16 +92,12 @@ export interface CreateFriendOutput {
   data: Friendship;
 }
 
-export interface SearchFriendsAndMutualsInput {
+export interface SearchFriendsInput {
   query: string;
 }
 
-export interface FriendWithRelationship extends Friend {
-  relationship: "friend" | "mutual";
-}
-
-export interface SearchFriendsAndMutualsOutput {
-  data: FriendWithRelationship[];
+export interface SearchFriendsOutput {
+  data: Friend[];
 }
 
 export interface PendingRequest extends Friend {

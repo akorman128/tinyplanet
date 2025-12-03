@@ -1,5 +1,5 @@
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
+import { useRequireProfile } from "./useRequireProfile";
 import {
   Comment,
   CommentWithAuthor,
@@ -9,7 +9,7 @@ import {
 
 export const useComments = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
 
   // ––– QUERIES –––
 
@@ -52,7 +52,7 @@ export const useComments = () => {
         ...comment,
         author: comment.author,
         like_count: commentLikes.length,
-        liked_by_user: commentLikes.some((l) => l.user_id === profileState!.id),
+        liked_by_user: commentLikes.some((l) => l.user_id === profile.id),
         replies: [],
       };
 
@@ -87,7 +87,7 @@ export const useComments = () => {
       .insert({
         post_id: input.post_id,
         parent_comment_id: input.parent_comment_id || null,
-        author_id: profileState!.id,
+        author_id: profile.id,
         body: input.body,
       })
       .select()
@@ -112,7 +112,7 @@ export const useComments = () => {
         edited_at: new Date().toISOString(),
       })
       .eq("id", commentId)
-      .eq("author_id", profileState!.id)
+      .eq("author_id", profile.id)
       .select()
       .single();
 
@@ -125,7 +125,7 @@ export const useComments = () => {
       .from("comments")
       .delete()
       .eq("id", commentId)
-      .eq("author_id", profileState!.id);
+      .eq("author_id", profile.id);
 
     if (error) throw error;
   };

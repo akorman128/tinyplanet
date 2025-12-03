@@ -6,11 +6,11 @@ import {
   GetVibesWithSenderOutputDto,
 } from "../types/vibe";
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
+import { useRequireProfile } from "./useRequireProfile";
 
 export const useVibe = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
 
   // ––– QUERIES –––
 
@@ -79,7 +79,7 @@ export const useVibe = () => {
     const { receiverId, emojis, inviteCodeId } = input;
 
     const vibeData: any = {
-      giver_id: profileState!.id,
+      giver_id: profile.id,
       receiver_id: receiverId,
       emojis,
     };

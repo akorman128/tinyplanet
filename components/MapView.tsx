@@ -67,6 +67,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       latitude?: number;
       longitude?: number;
       hometown?: string;
+      birthday?: string;
     } | null>(null);
     const [sheetLoading, setSheetLoading] = useState(false);
     const [vibesLoading, setVibesLoading] = useState(false);
@@ -267,12 +268,8 @@ export const MapView: React.FC<MapViewProps> = React.memo(
                 ...prev!,
                 avatarUrl: profile.avatar_url,
                 hometown: profile.hometown,
+                birthday: profile.birthday,
               }));
-
-              const profileUpdateTime = Date.now() - markerPressTime;
-              console.log(
-                `[MapView] Profile updated in ${profileUpdateTime}ms`
-              );
             } catch (err) {
               console.error("Error loading profile:", err);
             }
@@ -290,9 +287,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               );
 
               // Get all emojis from vibes (flatten the array of emoji arrays)
-              const allEmojis = vibesResult.data.flatMap(
-                (vibe) => vibe.emojis
-              );
+              const allEmojis = vibesResult.data.flatMap((vibe) => vibe.emojis);
 
               // Update with vibes data
               setSelectedUser((prev) => ({
@@ -584,6 +579,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               latitude={selectedUser.latitude}
               longitude={selectedUser.longitude}
               hometown={selectedUser.hometown}
+              birthday={selectedUser.birthday}
               loading={sheetLoading}
               vibesLoading={vibesLoading}
               onSheetChange={handleSheetChange}

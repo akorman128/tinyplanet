@@ -1,10 +1,10 @@
 import React from "react";
 import { View, Text, Pressable } from "react-native";
-import { Avatar, Button, Badge } from "@/design-system";
-import { FriendWithRelationship } from "@/types/friendship";
+import { Avatar, Badge } from "@/design-system";
+import { Friend } from "@/types/friendship";
 
 type UserSearchListItemProps = {
-  user: FriendWithRelationship;
+  user: Friend;
   onAddFriend?: (userId: string) => void;
   onPress?: (userId: string) => void;
 };
@@ -14,8 +14,6 @@ export function UserSearchListItem({
   onAddFriend,
   onPress,
 }: UserSearchListItemProps) {
-  const isFriend = user.relationship === "friend";
-
   return (
     <Pressable
       className="flex-row items-center px-6 py-4 active:bg-gray-50"
@@ -34,22 +32,11 @@ export function UserSearchListItem({
           {user.hometown && (
             <Text className="text-sm text-gray-400">{user.hometown}</Text>
           )}
-          <Badge
-            size="small"
-            variant={isFriend ? "secondary" : "default"}
-          >
-            {isFriend ? "Friend" : "Mutual"}
+          <Badge size="small" variant="secondary">
+            Friend
           </Badge>
         </View>
       </View>
-      {!isFriend && (
-        <Button
-          variant="primary"
-          onPress={() => onAddFriend?.(user.id)}
-        >
-          Add
-        </Button>
-      )}
     </Pressable>
   );
 }

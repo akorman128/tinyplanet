@@ -19,7 +19,7 @@ import { useFriends } from "@/hooks/useFriends";
 import { useVibe } from "@/hooks/useVibe";
 import { useInviteCodes } from "@/hooks/useInviteCodes";
 import { useProfileStore } from "@/stores/profileStore";
-import { FriendWithRelationship, PendingRequest } from "@/types/friendship";
+import { Friend, PendingRequest } from "@/types/friendship";
 import { useContactPicker } from "@/hooks/useContactPicker";
 import { isValidVibe, extractEmojis } from "@/utils/emojiValidation";
 import { formatPhoneNumber } from "@/utils";
@@ -50,9 +50,7 @@ export default function SearchScreen() {
 
   // Find Users tab state
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<FriendWithRelationship[]>(
-    []
-  );
+  const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
   // Requests tab state
@@ -86,7 +84,7 @@ export default function SearchScreen() {
   const allFormsValid = form1.formState.isValid && form2.formState.isValid;
 
   const {
-    searchFriendsAndMutuals,
+    searchFriends,
     getPendingRequests,
     sendFriendRequest,
     acceptFriendRequest,
@@ -118,7 +116,7 @@ export default function SearchScreen() {
 
     try {
       setSearchLoading(true);
-      const { data } = await searchFriendsAndMutuals({ query: searchQuery });
+      const { data } = await searchFriends({ query: searchQuery });
       setSearchResults(data);
     } catch (error) {
       console.error("Error searching users:", error);
@@ -126,7 +124,7 @@ export default function SearchScreen() {
     } finally {
       setSearchLoading(false);
     }
-  }, [searchQuery, searchFriendsAndMutuals]);
+  }, [searchQuery, searchFriends]);
 
   // Load invite count
   const loadInviteCount = useCallback(async () => {

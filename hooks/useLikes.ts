@@ -1,15 +1,15 @@
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
+import { useRequireProfile } from "./useRequireProfile";
 
 export const useLikes = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
 
   // ––– QUERIES –––
 
   const likePost = async (postId: string): Promise<void> => {
     const { error } = await supabase.from("likes").insert({
-      user_id: profileState!.id,
+      user_id: profile.id,
       post_id: postId,
       comment_id: null,
     });
@@ -21,7 +21,7 @@ export const useLikes = () => {
     const { error } = await supabase
       .from("likes")
       .delete()
-      .eq("user_id", profileState!.id)
+      .eq("user_id", profile.id)
       .eq("post_id", postId);
 
     if (error) throw error;
@@ -29,7 +29,7 @@ export const useLikes = () => {
 
   const likeComment = async (commentId: string): Promise<void> => {
     const { error } = await supabase.from("likes").insert({
-      user_id: profileState!.id,
+      user_id: profile.id,
       post_id: null,
       comment_id: commentId,
     });
@@ -41,7 +41,7 @@ export const useLikes = () => {
     const { error } = await supabase
       .from("likes")
       .delete()
-      .eq("user_id", profileState!.id)
+      .eq("user_id", profile.id)
       .eq("comment_id", commentId);
 
     if (error) throw error;

@@ -1,11 +1,9 @@
-import { useProfileStore } from "@/stores/profileStore";
+import { useRequireProfile } from "./useRequireProfile";
 import { useSupabase } from "./useSupabase";
 import {
   GetFriendIdsInput,
   GetFriendsOutput,
   GetFriendsOfFriendsOutput,
-  GetMutualsInput,
-  GetMutualsOutput,
   SendFriendRequestInput,
   SendFriendRequestOutput,
   AcceptFriendRequestInput,
@@ -17,18 +15,18 @@ import {
   FriendshipWithProfiles,
   Friend,
   FriendshipStatus,
+  FriendshipDisplayStatus,
   GeoJSONFeature,
   GeoJSONFeatureCollection,
-  SearchFriendsAndMutualsInput,
-  SearchFriendsAndMutualsOutput,
-  FriendWithRelationship,
+  SearchFriendsInput,
+  SearchFriendsOutput,
   GetPendingRequestsOutput,
   PendingRequest,
 } from "@/types/friendship";
 
 export const useFriends = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
 
   //––––– HELPERS –––––
 
@@ -50,27 +48,8 @@ export const useFriends = () => {
 
   // ––– QUERIES –––
 
-  const getFriendIds = async (input: GetFriendIdsInput): Promise<string[]> => {
-    const { targetUserId } = input;
-    const { data, error } = await supabase
-      .from("friendships")
-      .select("user_a, user_b")
-      .eq("status", FriendshipStatus.ACCEPTED)
-      .or(`user_a.eq.${targetUserId},user_b.eq.${targetUserId}`);
-
-    if (error) throw error;
-
-    return (
-      data?.map((f) => (f.user_a === targetUserId ? f.user_b : f.user_a)) ?? []
-    );
-  };
-
-  const getFriends = async (): Promise<GetFriendsOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot fetch friends");
-    }
-
-    const userId = profileState.id;
+  const getFriends = async (userId?: string): Promise<GetFriendsOutput> => {
+    const id = userId ?? profile.id;
 
     const { data, error } = await supabase
       .from("friendships")
@@ -84,24 +63,20 @@ export const useFriends = () => {
       b:profiles!friendships_user_b_fkey (id, full_name, avatar_url, website, hometown, birthday, location)
         `
       )
-      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+      .or(`user_a.eq.${id},user_b.eq.${id}`)
       .eq("status", FriendshipStatus.ACCEPTED);
 
     if (error) throw error;
 
     const friends = ((data as unknown as FriendshipWithProfiles[]) ?? [])
-      .map((row) => (row.user_a === userId ? row.b : row.a))
+      .map((row) => (row.user_a === id ? row.b : row.a))
       .filter((friend): friend is Friend => friend !== null);
 
     return { data: friends };
   };
 
   const getFriendsOfFriends = async (): Promise<GetFriendsOfFriendsOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot fetch friends of friends");
-    }
-
-    const userId = profileState.id;
+    const userId = profile.id;
 
     const { data, error } = await supabase
       .from("friends_of_friends_profiles_v")
@@ -113,34 +88,13 @@ export const useFriends = () => {
     return { data: (data as Friend[]) ?? [] };
   };
 
-  const getMutuals = async (
-    input: GetMutualsInput
-  ): Promise<GetMutualsOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot fetch mutuals");
-    }
-
-    // Get my friend IDs and target's friend IDs in parallel
-    const [myFriendIds, targetFriendIds] = await Promise.all([
-      getFriendIds({ targetUserId: profileState.id }),
-      getFriendIds({ targetUserId: input.targetUserId }),
-    ]);
-
-    const mutuals = myFriendIds.filter((id) => targetFriendIds.includes(id));
-    return { data: mutuals };
-  };
-
   /**
    * Gets all friend and mutual locations as a single GeoJSON FeatureCollection
    * for displaying on a map. Friends and mutuals are marked with different types.
    * Mutuals include connecting_friend_id to enable connection line visualization.
    */
   const getFriendLocations = async (): Promise<GeoJSONFeatureCollection> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot fetch friend locations");
-    }
-
-    const userId = profileState.id;
+    const userId = profile.id;
 
     // Call RPC functions to get friend and mutual locations with coordinates
     const [
@@ -180,51 +134,67 @@ export const useFriends = () => {
   };
 
   /**
-   * Searches friends by name (mutuals excluded)
+   * Searches friends by name with database-level filtering
    */
-  const searchFriendsAndMutuals = async (
-    input: SearchFriendsAndMutualsInput
-  ): Promise<SearchFriendsAndMutualsOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot search friends");
+  const searchFriends = async (
+    input: SearchFriendsInput
+  ): Promise<SearchFriendsOutput> => {
+    const { query } = input;
+    const trimmedQuery = query.trim();
+
+    // Return empty results for empty query
+    if (!trimmedQuery) {
+      return { data: [] };
     }
 
-    const { query } = input;
+    const userId = profile.id;
 
-    // Get friends only (no mutuals)
-    const { data: friends } = await getFriends();
+    // Use database-level filtering with ilike for case-insensitive search
+    const { data, error } = await supabase
+      .from("friendships")
+      .select(
+        `
+      id,
+      user_a,
+      user_b,
+      status,
+      a:profiles!friendships_user_a_fkey (id, full_name, avatar_url, website, hometown, birthday, location),
+      b:profiles!friendships_user_b_fkey (id, full_name, avatar_url, website, hometown, birthday, location)
+        `
+      )
+      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+      .eq("status", FriendshipStatus.ACCEPTED)
+      .or(
+        `a.full_name.ilike.%${trimmedQuery}%,b.full_name.ilike.%${trimmedQuery}%`
+      );
 
-    // Filter by name (case-insensitive)
-    const lowerQuery = query.toLowerCase().trim();
+    if (error) throw error;
 
-    const matchingFriends: FriendWithRelationship[] = friends
-      .filter((f) => f.full_name.toLowerCase().includes(lowerQuery))
-      .map((f) => ({ ...f, relationship: "friend" as const }));
+    const friends = ((data as unknown as FriendshipWithProfiles[]) ?? [])
+      .map((row) => (row.user_a === userId ? row.b : row.a))
+      .filter((friend): friend is Friend => friend !== null)
+      // Filter again client-side to ensure only matching friends are returned
+      // (since OR query might return rows where only one profile matches)
+      .filter((friend) =>
+        friend.full_name.toLowerCase().includes(trimmedQuery.toLowerCase())
+      )
+      // Sort by name
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
-    // Sort by name
-    const results = matchingFriends.sort((a, b) =>
-      a.full_name.localeCompare(b.full_name)
-    );
-
-    return { data: results };
+    return { data: friends };
   };
 
   /**
    * Gets the friendship status with a specific user
-   * Returns the status and mutual friends count in a single optimized query
    */
-  const getFriendshipStatus = async (targetUserId: string): Promise<{
-    status: "loading" | "not_friends" | "friends" | "pending_sent" | "pending_received";
-    mutualCount: number;
+  const getFriendshipStatus = async (
+    targetUserId: string
+  ): Promise<{
+    status: FriendshipDisplayStatus;
   }> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot check friendship status");
-    }
-
-    const userId = profileState.id;
+    const userId = profile.id;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
-    // Single query to check friendship status
     const { data: friendship, error } = await supabase
       .from("friendships")
       .select("status, requested_by")
@@ -234,34 +204,31 @@ export const useFriends = () => {
 
     if (error) throw error;
 
-    // Get mutual friends count
-    const mutualsResult = await getMutuals({ targetUserId });
-
-    let status: "not_friends" | "friends" | "pending_sent" | "pending_received" = "not_friends";
-
-    if (friendship) {
-      if (friendship.status === FriendshipStatus.ACCEPTED) {
-        status = "friends";
-      } else if (friendship.status === FriendshipStatus.PENDING) {
-        status = friendship.requested_by === userId ? "pending_sent" : "pending_received";
-      }
+    if (!friendship) {
+      return { status: FriendshipDisplayStatus.NOT_FRIENDS };
     }
 
-    return {
-      status,
-      mutualCount: mutualsResult.data.length,
-    };
+    if (friendship.status === FriendshipStatus.ACCEPTED) {
+      return { status: FriendshipDisplayStatus.FRIENDS };
+    }
+
+    if (friendship.status === FriendshipStatus.PENDING) {
+      return {
+        status:
+          friendship.requested_by === userId
+            ? FriendshipDisplayStatus.PENDING_SENT
+            : FriendshipDisplayStatus.PENDING_RECEIVED,
+      };
+    }
+
+    return { status: FriendshipDisplayStatus.NOT_FRIENDS };
   };
 
   /**
    * Gets all pending friend requests (incoming and outgoing)
    */
   const getPendingRequests = async (): Promise<GetPendingRequestsOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot fetch pending requests");
-    }
-
-    const userId = profileState.id;
+    const userId = profile.id;
 
     // Get all pending friendships involving this user
     const { data, error } = await supabase
@@ -315,12 +282,8 @@ export const useFriends = () => {
   const sendFriendRequest = async (
     input: SendFriendRequestInput
   ): Promise<SendFriendRequestOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot send friend request");
-    }
-
     const { targetUserId } = input;
-    const userId = profileState.id;
+    const userId = profile.id;
 
     validateFriendRequest(userId, targetUserId);
 
@@ -355,45 +318,20 @@ export const useFriends = () => {
           status: FriendshipStatus.PENDING,
           accepted_at: null,
         })
-        .or(`and(user_a.eq.${user_a},user_b.eq.${user_b}),and(user_a.eq.${user_b},user_b.eq.${user_a})`)
+        .or(
+          `and(user_a.eq.${user_a},user_b.eq.${user_b}),and(user_a.eq.${user_b},user_b.eq.${user_a})`
+        )
         .select()
         .maybeSingle();
 
       if (updateError) {
-        console.error("[useFriends] sendFriendRequest update error:", {
-          error: updateError,
-          errorMessage: updateError.message,
-          errorCode: updateError.code,
-          userId,
-          targetUserId,
-          user_a,
-          user_b,
-        });
         throw new Error(
           "A friendship record already exists but cannot be updated. This user may have already sent you a friend request."
         );
       }
 
-      // If no rows were updated (PGRST116 or updateData is null),
-      // the record exists but RLS won't let us see/update it
+      // If no rows were updated, the record exists but RLS won't let us see/update it
       if (!updateData) {
-        console.warn("[useFriends] Friendship exists but cannot be accessed via RLS", {
-          userId,
-          targetUserId,
-          user_a,
-          user_b,
-          authUid: "Should match userId in client",
-        });
-
-        // Try to fetch all pending requests to see if it's there
-        const { data: checkRequests } = await supabase
-          .from("friendships")
-          .select("*")
-          .or(`user_a.eq.${userId},user_b.eq.${userId}`)
-          .eq("status", FriendshipStatus.PENDING);
-
-        console.log("[useFriends] Current user's pending friendships:", checkRequests);
-
         throw new Error(
           "A friendship request already exists between you and this user. The other user may have already sent you a request - try refreshing the page."
         );
@@ -403,27 +341,14 @@ export const useFriends = () => {
     }
 
     // If it's a different error, throw it
-    console.error("[useFriends] sendFriendRequest insert error:", {
-      error: insertError,
-      errorMessage: insertError.message,
-      errorCode: insertError.code,
-      userId,
-      targetUserId,
-      user_a,
-      user_b,
-    });
     throw insertError;
   };
 
   const acceptFriendRequest = async (
     input: AcceptFriendRequestInput
   ): Promise<AcceptFriendRequestOutput> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot accept friend request");
-    }
-
     const { fromUserId } = input;
-    const userId = profileState.id;
+    const userId = profile.id;
     const [user_a, user_b] = orderUserIds(userId, fromUserId);
 
     const { data, error } = await supabase
@@ -435,7 +360,6 @@ export const useFriends = () => {
       .eq("user_a", user_a)
       .eq("user_b", user_b)
       .eq("status", FriendshipStatus.PENDING)
-      .neq("requested_by", userId)
       .select()
       .single();
 
@@ -446,17 +370,13 @@ export const useFriends = () => {
   const declineFriendRequest = async (
     input: DeclineFriendRequestInput
   ): Promise<void> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot decline friend request");
-    }
-
-    const userId = profileState.id;
+    const userId = profile.id;
     const { targetUserId } = input;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
     const { error } = await supabase
       .from("friendships")
-      .update({ status: FriendshipStatus.DECLINED, accepted_at: null })
+      .update({ status: FriendshipStatus.DECLINED })
       .eq("user_a", user_a)
       .eq("user_b", user_b)
       .eq("status", FriendshipStatus.PENDING);
@@ -465,11 +385,7 @@ export const useFriends = () => {
   };
 
   const unfriend = async (input: UnfriendInput): Promise<void> => {
-    if (!profileState) {
-      throw new Error("Profile not loaded - cannot unfriend");
-    }
-
-    const userId = profileState.id;
+    const userId = profile.id;
     const { targetUserId } = input;
     const [user_a, user_b] = orderUserIds(userId, targetUserId);
 
@@ -508,13 +424,31 @@ export const useFriends = () => {
     return { data };
   };
 
+  /**
+   * Gets mutual friends between current user and target user
+   */
+  const getMutualsBetweenUsers = async (
+    targetUserId: string
+  ): Promise<Friend[]> => {
+    const { data, error } = await supabase.rpc(
+      "get_mutual_friends_between_users",
+      {
+        p_user_id: profile.id,
+        p_target_user_id: targetUserId,
+      }
+    );
+
+    if (error) throw error;
+
+    return (data as Friend[]) ?? [];
+  };
+
   return {
     isLoaded,
     getFriends,
     getFriendsOfFriends,
-    getMutuals,
     getFriendLocations,
-    searchFriendsAndMutuals,
+    searchFriends,
     getPendingRequests,
     getFriendshipStatus,
     sendFriendRequest,
@@ -522,5 +456,6 @@ export const useFriends = () => {
     declineFriendRequest,
     unfriend,
     createFriend,
+    getMutualsBetweenUsers,
   };
 };

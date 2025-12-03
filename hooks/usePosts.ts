@@ -1,5 +1,5 @@
 import { useSupabase } from "./useSupabase";
-import { useProfileStore } from "../stores/profileStore";
+import { useRequireProfile } from "./useRequireProfile";
 import {
   Post,
   PostWithAuthor,
@@ -9,7 +9,7 @@ import {
 
 export const usePosts = () => {
   const { isLoaded, supabase } = useSupabase();
-  const { profileState } = useProfileStore();
+  const profile = useRequireProfile();
 
   // ––– QUERIES –––
 
@@ -52,7 +52,7 @@ export const usePosts = () => {
       .from("likes")
       .select("id")
       .eq("post_id", postId)
-      .eq("user_id", profileState!.id)
+      .eq("user_id", profile.id)
       .maybeSingle();
 
     if (userLikeError) throw userLikeError;
@@ -78,7 +78,7 @@ export const usePosts = () => {
     const { data, error } = await supabase
       .from("posts")
       .insert({
-        author_id: profileState!.id,
+        author_id: profile.id,
         text: input.text,
         visibility: input.visibility,
         media_urls: input.media_urls || [],
@@ -110,7 +110,7 @@ export const usePosts = () => {
       .from("posts")
       .update(updates)
       .eq("id", postId)
-      .eq("author_id", profileState!.id)
+      .eq("author_id", profile.id)
       .select()
       .single();
 
@@ -123,7 +123,7 @@ export const usePosts = () => {
       .from("posts")
       .delete()
       .eq("id", postId)
-      .eq("author_id", profileState!.id);
+      .eq("author_id", profile.id);
 
     if (error) throw error;
   };
