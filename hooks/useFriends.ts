@@ -34,9 +34,6 @@ export const useFriends = () => {
     return userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
   };
 
-  /**
-   * Validates a friend request to ensure it's not self-friending
-   */
   const validateFriendRequest = (
     currentUserId: string,
     targetUserId: string
@@ -88,11 +85,6 @@ export const useFriends = () => {
     return { data: (data as Friend[]) ?? [] };
   };
 
-  /**
-   * Gets all friend and mutual locations as a single GeoJSON FeatureCollection
-   * for displaying on a map. Friends and mutuals are marked with different types.
-   * Mutuals include connecting_friend_id to enable connection line visualization.
-   */
   const getFriendLocations = async (): Promise<GeoJSONFeatureCollection> => {
     const userId = profile.id;
 
@@ -133,9 +125,6 @@ export const useFriends = () => {
     };
   };
 
-  /**
-   * Searches friends by name with database-level filtering
-   */
   const searchFriends = async (
     input: SearchFriendsInput
   ): Promise<SearchFriendsOutput> => {
@@ -184,9 +173,6 @@ export const useFriends = () => {
     return { data: friends };
   };
 
-  /**
-   * Gets the friendship status with a specific user
-   */
   const getFriendshipStatus = async (
     targetUserId: string
   ): Promise<{
@@ -224,9 +210,6 @@ export const useFriends = () => {
     return { status: FriendshipDisplayStatus.NOT_FRIENDS };
   };
 
-  /**
-   * Gets all pending friend requests (incoming and outgoing)
-   */
   const getPendingRequests = async (): Promise<GetPendingRequestsOutput> => {
     const userId = profile.id;
 
@@ -424,9 +407,6 @@ export const useFriends = () => {
     return { data };
   };
 
-  /**
-   * Gets mutual friends between current user and target user
-   */
   const getMutualsBetweenUsers = async (
     targetUserId: string
   ): Promise<Friend[]> => {

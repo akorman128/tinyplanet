@@ -1,6 +1,3 @@
-/**
- * Validates if a string contains exactly the specified number of emojis
- */
 export function isValidEmojiString(text: string, count: number = 3): boolean {
   if (!text) return false;
 
@@ -26,9 +23,6 @@ export function isValidEmojiString(text: string, count: number = 3): boolean {
   return trimmed === joinedEmojis;
 }
 
-/**
- * Extracts emojis from a string and returns them as an array
- */
 export function extractEmojis(text: string): string[] {
   if (!text) return [];
 
@@ -38,9 +32,6 @@ export function extractEmojis(text: string): string[] {
   return matches || [];
 }
 
-/**
- * Validates if a string contains exactly 3 emojis (specific for vibe creation)
- */
 export function isValidVibe(emojis: string): boolean {
   return isValidEmojiString(emojis, 3);
 }

@@ -23,7 +23,7 @@ const sizeConfig = {
   },
 };
 
-export const Avatar: React.FC<AvatarProps> = React.memo(
+export const Avatar = React.memo<AvatarProps>(
   ({ fullName, avatarUrl, size = "large" }) => {
     const config = sizeConfig[size];
     const initials = getInitials(fullName);
@@ -36,14 +36,6 @@ export const Avatar: React.FC<AvatarProps> = React.memo(
           {initials}
         </Text>
       </View>
-    );
-  },
-  (prevProps, nextProps) => {
-    // Only re-render if fullName, avatarUrl, or size changes
-    return (
-      prevProps.fullName === nextProps.fullName &&
-      prevProps.avatarUrl === nextProps.avatarUrl &&
-      prevProps.size === nextProps.size
     );
   }
 );

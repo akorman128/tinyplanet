@@ -98,7 +98,12 @@ export const usePosts = () => {
     postId: string,
     input: UpdatePostInput
   ): Promise<UpdatePostOutput> => {
-    const updates: any = {
+    const updates: {
+      edited_at: string;
+      text?: string;
+      visibility?: "friends" | "mutuals" | "public";
+      media_urls?: string[];
+    } = {
       edited_at: new Date().toISOString(),
     };
 

@@ -16,29 +16,18 @@ export const useProfile = () => {
   const getProfile = async (input: GetProfileDto): Promise<Profile> => {
     const { userId } = input;
 
-    try {
-      const { data, error } = await supabase.rpc("get_profile", {
-        p_user_id: userId,
-        p_current_user_id: profileState?.id || null,
-      });
+    const { data, error } = await supabase.rpc("get_profile", {
+      p_user_id: userId,
+      p_current_user_id: profileState?.id || null,
+    });
 
-      if (error) {
-        throw new Error(
-          `Failed to fetch profile for user ${userId}: ${error.message}`
-        );
-      }
+    if (error) throw error;
 
-      // RPC returns an array, we need the first element
-      if (!data || data.length === 0) {
-        throw new Error(`Profile not found for user ${userId}`);
-      }
-
-      return data[0];
-    } catch (error) {
-      throw new Error(
-        `Error in getProfile: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+    if (!data || data.length === 0) {
+      throw new Error(`Profile not found for user ${userId}`);
     }
+
+    return data[0];
   };
 
   // ––– MUTATIONS –––
@@ -67,38 +56,29 @@ export const useProfile = () => {
       invited_by,
     } = input;
 
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .insert({
-          id,
-          phone_number,
-          full_name,
-          avatar_url: "",
-          website: "",
-          hometown,
-          birthday,
-          location: location
-            ? `POINT(${location.longitude} ${location.latitude})`
-            : "",
-          invited_by,
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .insert({
+        id,
+        phone_number,
+        full_name,
+        avatar_url: "",
+        website: "",
+        hometown,
+        birthday,
+        location: location
+          ? `POINT(${location.longitude} ${location.latitude})`
+          : "",
+        invited_by,
+      })
+      .select()
+      .single();
 
-      if (error) {
-        throw new Error(`Failed to create profile: ${error.message}`);
-      }
+    if (error) throw error;
 
-      // Update profile state with newly created profile
-      setProfileState(data);
+    setProfileState(data);
 
-      return data;
-    } catch (error) {
-      throw new Error(
-        `Error in createProfile: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
+    return data;
   };
 
   interface UpdateProfileDto {
@@ -112,10 +92,8 @@ export const useProfile = () => {
       throw new Error("Profile not loaded. Cannot update profile.");
     }
 
-    // Store previous state for rollback
     const previousState = profileState;
 
-    // Optimistically update local state
     const optimisticProfile = {
       ...profileState,
       ...updateData,
@@ -125,7 +103,6 @@ export const useProfile = () => {
     setProfileState(optimisticProfile);
 
     try {
-      // Only send changed fields plus updated_at to the database
       const updatePayload = {
         ...updateData,
         updated_at: new Date().toISOString(),
@@ -139,21 +116,16 @@ export const useProfile = () => {
         .single();
 
       if (error) {
-        // Rollback on error
         setProfileState(previousState);
-        throw new Error(`Failed to update profile: ${error.message}`);
+        throw error;
       }
 
-      // Update with server response to ensure consistency
       setProfileState(data);
 
       return data;
     } catch (error) {
-      // Rollback on error
       setProfileState(previousState);
-      throw new Error(
-        `Error in updateProfile: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      throw error;
     }
   };
 

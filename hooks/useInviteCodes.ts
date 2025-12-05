@@ -58,13 +58,13 @@ export const useInviteCodes = () => {
   };
 
   interface createInviteCodeDto {
-    code?: string; // Optional - will be generated if not provided
+    code?: string;
     expires_at: Date;
   }
 
   interface createInviteCodeOutputDto {
     data: InviteCode;
-    code: string; // The generated or provided code
+    code: string;
   }
 
   const createInviteCode = async (
@@ -72,7 +72,6 @@ export const useInviteCodes = () => {
   ): Promise<createInviteCodeOutputDto> => {
     const { code: providedCode, expires_at } = input;
 
-    // If code is provided, use it directly (no retry)
     if (providedCode) {
       const { data, error } = await supabase
         .from("invite_codes")
@@ -95,7 +94,6 @@ export const useInviteCodes = () => {
       return { data, code: providedCode };
     }
 
-    // Generate code with retry logic
     const maxRetries = 5;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -112,17 +110,14 @@ export const useInviteCodes = () => {
         .select()
         .single();
 
-      // Success - return the data and code
       if (!error) {
         return { data, code: generatedCode };
       }
 
-      // If it's a duplicate code error and we haven't exhausted retries, try again
       if (error.code === "23505" && attempt < maxRetries - 1) {
         continue;
       }
 
-      // Otherwise throw the error
       if (error.code === "23505") {
         throw new Error(
           "Failed to generate unique invite code after multiple attempts"
