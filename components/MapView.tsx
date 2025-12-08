@@ -12,7 +12,6 @@ import {
   Text,
   LayoutChangeEvent,
 } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Mapbox, {
   Camera,
   ShapeSource,
@@ -328,8 +327,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
     }
 
     return (
-      <GestureHandlerRootView className="flex-1">
-        <View className="flex-1" onLayout={handleLayout}>
+      <View className="flex-1" onLayout={handleLayout}>
           {mapDimensions.width > 0 && mapDimensions.height > 0 && (
             <Mapbox.MapView
               style={styles.map}
@@ -592,8 +590,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
               onToggleLines={setShowConnectionLines}
             />
           )}
-        </View>
-      </GestureHandlerRootView>
+      </View>
     );
   }
 );

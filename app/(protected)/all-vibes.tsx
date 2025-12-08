@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { colors, Avatar, ScreenHeader } from "@/design-system";
 import { useVibe } from "@/hooks/useVibe";
 import { VibeWithSender } from "@/types/vibe";
+import { formatTimeAgo } from "@/utils";
 
 export default function AllVibesScreen() {
   const router = useRouter();
@@ -38,21 +39,6 @@ export default function AllVibesScreen() {
     loadVibes();
   }, [userId, getVibesWithSenderInfo, isLoaded]);
 
-  const formatTimestamp = (timestamp: string): string => {
-    const now = new Date();
-    const vibeDate = new Date(timestamp);
-    const diffMs = now.getTime() - vibeDate.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-    return vibeDate.toLocaleDateString();
-  };
 
   const renderVibeItem = ({ item }: { item: VibeWithSender }) => (
     <View className="flex-row px-6 py-4 items-start">
@@ -67,7 +53,7 @@ export default function AllVibesScreen() {
             {item.giver.full_name}
           </Text>
           <Text className="text-xs font-medium text-gray-400">
-            {formatTimestamp(item.created_at)}
+            {formatTimeAgo(item.created_at)}
           </Text>
         </View>
         <View className="flex-row gap-2">

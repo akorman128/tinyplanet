@@ -1,4 +1,6 @@
 export { Button } from "./Button";
+export { ButtonGroup } from "./ButtonGroup";
+export type { ButtonGroupOption } from "./ButtonGroup";
 export { Heading, Subheading, Body, Caption } from "./Typography";
 export { Input } from "./Input";
 export { colors } from "./colors";

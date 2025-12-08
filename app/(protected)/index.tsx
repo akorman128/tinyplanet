@@ -1,17 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { View, TouchableOpacity } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import BottomSheet from "@gorhom/bottom-sheet";
 import { MapView } from "@/components/MapView";
+import { FeedView } from "@/components/FeedView";
+import { CreatePostSheet } from "@/components/CreatePostSheet";
 import { Avatar, Icons } from "@/design-system";
+import { ButtonGroup } from "@/design-system/ButtonGroup";
 import { useProfileStore } from "@/stores/profileStore";
 import { colors } from "@/design-system/colors";
+
+type ViewMode = "map" | "feed";
 
 export default function Page() {
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeView, setActiveView] = useState<ViewMode>("map");
+  const [isCreatePostSheetOpen, setIsCreatePostSheetOpen] = useState(false);
   const router = useRouter();
   const { profileState } = useProfileStore();
+  const createPostSheetRef = useRef<BottomSheet>(null);
 
   const onRefreshComplete = () => {
     setRefreshing(false);
@@ -25,42 +35,103 @@ export default function Page() {
     router.push("/search");
   };
 
+  const handlePostCreated = () => {
+    // Refresh feed after post creation
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 100);
+  };
+
   return (
-    <View className="flex-1">
-      <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
-      <TouchableOpacity
-        className="absolute left-5 w-12 h-12 rounded-full justify-center items-center"
-        style={{
-          top: insets.top + 20,
-          backgroundColor: colors.hex.white,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          elevation: 5,
-        }}
-        onPress={handleProfilePress}
-      >
-        <Avatar
-          fullName={profileState?.full_name || ""}
-          avatarUrl={profileState?.avatar_url}
-          size="small"
+    <GestureHandlerRootView className="flex-1">
+      <View className="flex-1">
+        {/* Map or Feed View */}
+        {activeView === "map" ? (
+          <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
+        ) : (
+          <FeedView key={refreshing ? "refreshing" : "idle"} />
+        )}
+
+        {/* Toggle Buttons (Centered Top) */}
+        <View
+          className="absolute left-0 right-0 flex-row justify-center px-20 z-10"
+          style={{ top: insets.top + 20 }}
+        >
+          <ButtonGroup
+            activeIndex={activeView === "map" ? 0 : 1}
+            options={[
+              {
+                icon: Icons.globe,
+                onPress: () => setActiveView("map"),
+              },
+              {
+                icon: Icons.posts,
+                onPress: () => setActiveView("feed"),
+              },
+            ]}
+          />
+        </View>
+
+        {/* Profile Button (Top Left) */}
+        <TouchableOpacity
+          className="absolute left-5 w-12 h-12 rounded-full justify-center items-center z-10"
+          style={{
+            top: insets.top + 20,
+            backgroundColor: colors.hex.white,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+          }}
+          onPress={handleProfilePress}
+        >
+          <Avatar
+            fullName={profileState?.full_name || ""}
+            avatarUrl={profileState?.avatar_url}
+            size="small"
+          />
+        </TouchableOpacity>
+
+        {/* Search Button (Top Right) */}
+        <TouchableOpacity
+          className="absolute right-5 w-12 h-12 rounded-full bg-white opacity-70 justify-center items-center z-10"
+          style={{
+            top: insets.top + 20,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.25,
+            shadowRadius: 4,
+            elevation: 5,
+          }}
+          onPress={handleSearchPress}
+        >
+          <Icons.search size={64} color="black" />
+        </TouchableOpacity>
+
+        {/* Floating + Button (Feed Only) */}
+        {activeView === "feed" && !isCreatePostSheetOpen && (
+          <TouchableOpacity
+            className="absolute bottom-8 right-5 w-14 h-14 rounded-full bg-purple-600 justify-center items-center z-10"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
+            onPress={() => createPostSheetRef.current?.snapToIndex(0)}
+          >
+            <Icons.plus size={28} color="white" />
+          </TouchableOpacity>
+        )}
+
+        {/* Create Post Bottom Sheet */}
+        <CreatePostSheet
+          ref={createPostSheetRef}
+          onPostCreated={handlePostCreated}
+          onSheetChange={(index) => setIsCreatePostSheetOpen(index >= 0)}
         />
-      </TouchableOpacity>
-      <TouchableOpacity
-        className="absolute right-5 w-12 h-12 rounded-full bg-white opacity-70 justify-center items-center"
-        style={{
-          top: insets.top + 20,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
-          elevation: 5,
-        }}
-        onPress={handleSearchPress}
-      >
-        <Icons.search size={64} color="black" />
-      </TouchableOpacity>
-    </View>
+      </View>
+    </GestureHandlerRootView>
   );
 }
