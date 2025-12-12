@@ -9,10 +9,7 @@ import { usePosts } from "@/hooks/usePosts";
 import { PostVisibility } from "@/types/post";
 
 const createPostSchema = z.object({
-  text: z
-    .string()
-    .min(1, "Post cannot be empty")
-    .max(500, "Post is too long"),
+  text: z.string().min(1, "Post cannot be empty").max(500, "Post is too long"),
 });
 
 interface CreatePostSheetProps {
@@ -83,7 +80,7 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
       >
         <BottomSheetView className="flex-1 px-6 pt-4 pb-6">
           <Text className="text-2xl font-bold text-gray-900 mb-6">
-            Create Post
+            make a bloop
           </Text>
 
           <Controller
