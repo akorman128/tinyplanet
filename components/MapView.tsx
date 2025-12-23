@@ -19,15 +19,11 @@ import Mapbox, {
   SymbolLayer,
   LineLayer,
 } from "@rnmapbox/maps";
-import BottomSheet from "@gorhom/bottom-sheet";
 import { useFriends } from "@/hooks/useFriends";
 import { GeoJSONFeatureCollection, ConnectionLine } from "@/types/friendship";
 import { useLocation } from "@/hooks/useLocation";
 import { colors, MapLegend } from "@/design-system";
-import { UserDetailsSheet } from "./UserDetailsSheet";
-import { useProfile } from "@/hooks/useProfile";
-import { useVibe } from "@/hooks/useVibe";
-import { reverseGeocode } from "@/utils/reverseGeocode";
+import { useRouter } from "expo-router";
 
 interface MapViewProps {
   onRefresh?: () => void;
@@ -42,8 +38,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       getCurrentLocation,
       updateLocationInDatabase,
     } = useLocation();
-    const { getProfile } = useProfile();
-    const { getVibes } = useVibe();
+    const router = useRouter();
 
     const [friendLocations, setFriendLocations] =
       useState<GeoJSONFeatureCollection | null>(null);
@@ -54,22 +49,6 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
     // Connection line visibility state (default: off)
     const [showConnectionLines, setShowConnectionLines] = useState(false);
-
-    // Bottom sheet state
-    const bottomSheetRef = useRef<BottomSheet>(null);
-    const [selectedUser, setSelectedUser] = useState<{
-      id: string;
-      fullName: string;
-      avatarUrl?: string;
-      vibeEmojis?: string[];
-      totalVibeCount?: number;
-      latitude?: number;
-      longitude?: number;
-      hometown?: string;
-      birthday?: string;
-    } | null>(null);
-    const [sheetLoading, setSheetLoading] = useState(false);
-    const [vibesLoading, setVibesLoading] = useState(false);
 
     // Convert user location object to [longitude, latitude] tuple for Mapbox
     const userLocation: [number, number] | null = userLocationObj
@@ -206,108 +185,24 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       setMapDimensions({ width, height });
     }, []);
 
-    // Handle bottom sheet close
-    const handleSheetChange = useCallback((index: number) => {
-      if (index === -1) {
-        // Sheet is closed, clear selected user to show legend
-        setSelectedUser(null);
-      }
-    }, []);
-
     // Handle marker press
     const handleMarkerPress = useCallback(
-      async (event: any) => {
-        const markerPressTime = Date.now();
-        console.log("\n[MapView] ========== MARKER PRESS ==========");
-
+      (event: any) => {
         const { features } = event;
         if (features && features.length > 0) {
           const feature = features[0];
           const userId = feature.properties.id;
-          const userName = feature.properties.name;
 
           // Don't do anything if a cluster is tapped
           if (feature.properties.point_count) {
             return;
           }
 
-          // Get coordinates from the feature (GeoJSON coordinates are [longitude, latitude])
-          const [longitude, latitude] = feature.geometry.coordinates;
-
-          console.log(`[MapView] User: ${userName} (${userId})`);
-          console.log(`[MapView] Coordinates: (${longitude}, ${latitude})`);
-
-          // PHASE 1: Show sheet immediately with marker data (0ms)
-          setSelectedUser({
-            id: userId,
-            fullName: userName,
-            latitude,
-            longitude,
-          });
-          setSheetLoading(false);
-          setVibesLoading(true);
-          bottomSheetRef.current?.snapToIndex(0);
-
-          const sheetOpenTime = Date.now() - markerPressTime;
-          console.log(`[MapView] Sheet opened in ${sheetOpenTime}ms`);
-
-          // PHASE 2: Fetch profile data in background (avatar, hometown)
-          (async () => {
-            try {
-              console.log("[MapView] Fetching profile data");
-              const profileStart = Date.now();
-              const profile = await getProfile({ userId });
-              const profileDuration = Date.now() - profileStart;
-              console.log(
-                `[MapView] Profile fetch completed in ${profileDuration}ms`
-              );
-
-              // Update with profile data
-              setSelectedUser((prev) => ({
-                ...prev!,
-                avatarUrl: profile.avatar_url,
-                hometown: profile.hometown,
-                birthday: profile.birthday,
-              }));
-            } catch (err) {
-              console.error("Error loading profile:", err);
-            }
-          })();
-
-          // PHASE 3: Fetch vibes data in background (slowest)
-          (async () => {
-            try {
-              console.log("[MapView] Fetching vibes data");
-              const vibesStart = Date.now();
-              const vibesResult = await getVibes({ recipientId: userId });
-              const vibesDuration = Date.now() - vibesStart;
-              console.log(
-                `[MapView] Vibes fetch completed in ${vibesDuration}ms`
-              );
-
-              // Get all emojis from vibes (flatten the array of emoji arrays)
-              const allEmojis = vibesResult.data.flatMap((vibe) => vibe.emojis);
-
-              // Update with vibes data
-              setSelectedUser((prev) => ({
-                ...prev!,
-                vibeEmojis: allEmojis.length > 0 ? allEmojis : undefined,
-                totalVibeCount: vibesResult.data.length,
-              }));
-
-              const totalTime = Date.now() - markerPressTime;
-              console.log(
-                `[MapView] ========== TOTAL TIME: ${totalTime}ms ==========\n`
-              );
-            } catch (err) {
-              console.error("Error loading vibes:", err);
-            } finally {
-              setVibesLoading(false);
-            }
-          })();
+          // Navigate to the user's profile page
+          router.push({ pathname: "/profile", params: { userId } });
         }
       },
-      [getProfile, getVibes]
+      [router]
     );
 
     if (loading) {
@@ -566,30 +461,10 @@ export const MapView: React.FC<MapViewProps> = React.memo(
             </Mapbox.MapView>
           )}
 
-          {selectedUser && (
-            <UserDetailsSheet
-              ref={bottomSheetRef}
-              userId={selectedUser.id}
-              fullName={selectedUser.fullName}
-              avatarUrl={selectedUser.avatarUrl}
-              vibeEmojis={selectedUser.vibeEmojis}
-              totalVibeCount={selectedUser.totalVibeCount}
-              latitude={selectedUser.latitude}
-              longitude={selectedUser.longitude}
-              hometown={selectedUser.hometown}
-              birthday={selectedUser.birthday}
-              loading={sheetLoading}
-              vibesLoading={vibesLoading}
-              onSheetChange={handleSheetChange}
-            />
-          )}
-
-          {!selectedUser && (
-            <MapLegend
-              showLines={showConnectionLines}
-              onToggleLines={setShowConnectionLines}
-            />
-          )}
+          <MapLegend
+            showLines={showConnectionLines}
+            onToggleLines={setShowConnectionLines}
+          />
       </View>
     );
   }

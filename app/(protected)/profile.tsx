@@ -242,6 +242,22 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleCancelRequest = async () => {
+    if (!userId) return;
+
+    setActionLoading(true);
+    try {
+      await declineFriendRequest({
+        targetUserId: userId,
+      });
+      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+    } catch (err) {
+      setError("Failed to cancel friend request");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Loading state
   if (loading || (!isViewingOwnProfile && !otherUserProfile)) {
     return (
@@ -302,6 +318,7 @@ export default function ProfileScreen() {
                 status={friendshipStatus}
                 onAddFriend={handleAddFriend}
                 onUnfriend={handleUnfriend}
+                onCancelRequest={handleCancelRequest}
                 onAccept={handleAcceptRequest}
                 onDecline={handleDeclineRequest}
                 actionLoading={actionLoading}

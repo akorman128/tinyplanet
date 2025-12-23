@@ -11,6 +11,7 @@ interface InputProps extends TextInputProps {
   showCharacterCount?: boolean;
   clearable?: boolean;
   onClear?: () => void;
+  onChange?: (value: string) => void; // Support React Hook Form
 }
 
 export function Input({ className = "", label, error, maxLength, showCharacterCount = false, clearable = false, onClear, ...props }: InputProps) {
@@ -27,6 +28,7 @@ export function Input({ className = "", label, error, maxLength, showCharacterCo
   const handleChangeText = (text: string) => {
     setCurrentLength(text.length);
     props.onChangeText?.(text);
+    props.onChange?.(text); // Support React Hook Form
   };
 
   const showClearIcon = clearable && props.value && props.value.toString().length > 0;

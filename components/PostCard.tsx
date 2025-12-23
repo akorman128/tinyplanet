@@ -111,7 +111,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
             onPress={handleLikeToggle}
             disabled={isLiking}
           >
-            <Icons.beat
+            <Icons.heartOutline
               size={20}
               color={post.liked_by_user ? colors.hex.error : colors.hex.gray500}
             />

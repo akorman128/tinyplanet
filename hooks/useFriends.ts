@@ -129,48 +129,16 @@ export const useFriends = () => {
     input: SearchFriendsInput
   ): Promise<SearchFriendsOutput> => {
     const { query } = input;
-    const trimmedQuery = query.trim();
 
-    // Return empty results for empty query
-    if (!trimmedQuery) {
-      return { data: [] };
-    }
-
-    const userId = profile.id;
-
-    // Use database-level filtering with ilike for case-insensitive search
-    const { data, error } = await supabase
-      .from("friendships")
-      .select(
-        `
-      id,
-      user_a,
-      user_b,
-      status,
-      a:profiles!friendships_user_a_fkey (id, full_name, avatar_url, website, hometown, birthday, location),
-      b:profiles!friendships_user_b_fkey (id, full_name, avatar_url, website, hometown, birthday, location)
-        `
-      )
-      .or(`user_a.eq.${userId},user_b.eq.${userId}`)
-      .eq("status", FriendshipStatus.ACCEPTED)
-      .or(
-        `a.full_name.ilike.%${trimmedQuery}%,b.full_name.ilike.%${trimmedQuery}%`
-      );
+    // Use RPC function for efficient server-side filtering
+    const { data, error } = await supabase.rpc("search_friends", {
+      p_user_id: profile.id,
+      p_query: query,
+    });
 
     if (error) throw error;
 
-    const friends = ((data as unknown as FriendshipWithProfiles[]) ?? [])
-      .map((row) => (row.user_a === userId ? row.b : row.a))
-      .filter((friend): friend is Friend => friend !== null)
-      // Filter again client-side to ensure only matching friends are returned
-      // (since OR query might return rows where only one profile matches)
-      .filter((friend) =>
-        friend.full_name.toLowerCase().includes(trimmedQuery.toLowerCase())
-      )
-      // Sort by name
-      .sort((a, b) => a.full_name.localeCompare(b.full_name));
-
-    return { data: friends };
+    return { data: (data as Friend[]) ?? [] };
   };
 
   const getFriendshipStatus = async (

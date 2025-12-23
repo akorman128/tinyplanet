@@ -1,22 +1,16 @@
 import React from "react";
-import { Pressable, ActionSheetIOS, Platform, Alert } from "react-native";
-import { Icons, colors } from "@/design-system";
+import { ActionSheetIOS, Platform, Alert } from "react-native";
+import { Button } from "@/design-system";
 import { FriendshipDisplayStatus } from "@/types/friendship";
 
 type FriendStatusSectionProps = {
   status: FriendshipDisplayStatus | "loading";
   onAddFriend?: () => void;
   onUnfriend?: () => void;
+  onCancelRequest?: () => void;
   onAccept?: () => void;
   onDecline?: () => void;
   actionLoading?: boolean;
-};
-
-type IconConfig = {
-  Icon: React.ComponentType<{ size: number; color: string }>;
-  color: string;
-  onPress?: () => void;
-  size: number;
 };
 
 const showConfirmation = (
@@ -26,52 +20,37 @@ const showConfirmation = (
   onConfirm?: () => void,
   isDestructive = false
 ) => {
-  ActionSheetIOS.showActionSheetWithOptions(
-    {
-      options: ["Cancel", confirmText],
-      cancelButtonIndex: 0,
-      destructiveButtonIndex: isDestructive ? 1 : undefined,
-    },
-    (buttonIndex) => {
-      if (buttonIndex === 1 && onConfirm) {
-        onConfirm();
-      }
-    }
-  );
-};
-
-const showFriendRequestActions = (
-  onAccept?: () => void,
-  onDecline?: () => void
-) => {
   if (Platform.OS === "ios") {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        options: ["Cancel", "Accept Request", "Decline Request"],
+        options: ["Cancel", confirmText],
         cancelButtonIndex: 0,
-        destructiveButtonIndex: 2,
+        destructiveButtonIndex: isDestructive ? 1 : undefined,
       },
       (buttonIndex) => {
-        if (buttonIndex === 1 && onAccept) {
-          onAccept();
-        } else if (buttonIndex === 2 && onDecline) {
-          onDecline();
+        if (buttonIndex === 1 && onConfirm) {
+          onConfirm();
         }
       }
     );
   } else {
-    Alert.alert("Friend Request", "What would you like to do?", [
+    Alert.alert(title, message, [
       { text: "Cancel", style: "cancel" },
-      { text: "Accept", onPress: onAccept },
-      { text: "Decline", onPress: onDecline, style: "destructive" },
+      {
+        text: confirmText,
+        onPress: onConfirm,
+        style: isDestructive ? "destructive" : "default",
+      },
     ]);
   }
 };
+
 
 export function FriendStatusSection({
   status,
   onAddFriend,
   onUnfriend,
+  onCancelRequest,
   onAccept,
   onDecline,
   actionLoading = false,
@@ -80,16 +59,23 @@ export function FriendStatusSection({
     return null;
   }
 
-  const handleAddFriend = () => {
+  const handleFollow = () => {
+    if (onAddFriend) {
+      onAddFriend();
+    }
+  };
+
+  const handlePending = () => {
     showConfirmation(
-      "Send Friend Request",
-      "Would you like to send a friend request to this person?",
-      "Send Friend Request",
-      onAddFriend
+      "Cancel Friend Request",
+      "Do you want to cancel this friend request?",
+      "Cancel Request",
+      onCancelRequest,
+      false
     );
   };
 
-  const handleUnfriend = () => {
+  const handleFriends = () => {
     showConfirmation(
       "Unfriend",
       "Are you sure you want to remove this friend?",
@@ -99,52 +85,66 @@ export function FriendStatusSection({
     );
   };
 
-  const handlePendingReceived = () => {
-    showFriendRequestActions(onAccept, onDecline);
-  };
-
-  const iconConfig: IconConfig = (() => {
+  const getButtonConfig = () => {
     switch (status) {
-      case FriendshipDisplayStatus.FRIENDS:
-        return {
-          Icon: Icons.circleCheck,
-          color: colors.neutral.gray400,
-          onPress: handleUnfriend,
-          size: 32,
-        };
       case FriendshipDisplayStatus.NOT_FRIENDS:
         return {
-          Icon: Icons.plus,
-          color: colors.neutral.gray400,
-          onPress: handleAddFriend,
-          size: 32,
+          text: "Follow",
+          onPress: handleFollow,
         };
       case FriendshipDisplayStatus.PENDING_SENT:
         return {
-          Icon: Icons.clock,
-          color: colors.neutral.gray400,
-          size: 32,
+          text: "Pending",
+          onPress: handlePending,
+        };
+      case FriendshipDisplayStatus.FRIENDS:
+        return {
+          text: "Friends",
+          onPress: handleFriends,
         };
       case FriendshipDisplayStatus.PENDING_RECEIVED:
+        // For incoming requests, we could show different UI
+        // For now, showing a simple "Respond" button
         return {
-          Icon: Icons.notification,
-          color: colors.neutral.gray400,
-          onPress: handlePendingReceived,
-          size: 32,
+          text: "Respond",
+          onPress: () => {
+            if (Platform.OS === "ios") {
+              ActionSheetIOS.showActionSheetWithOptions(
+                {
+                  options: ["Cancel", "Accept Request", "Decline Request"],
+                  cancelButtonIndex: 0,
+                  destructiveButtonIndex: 2,
+                },
+                (buttonIndex) => {
+                  if (buttonIndex === 1 && onAccept) {
+                    onAccept();
+                  } else if (buttonIndex === 2 && onDecline) {
+                    onDecline();
+                  }
+                }
+              );
+            } else {
+              Alert.alert("Friend Request", "What would you like to do?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Accept", onPress: onAccept },
+                { text: "Decline", onPress: onDecline, style: "destructive" },
+              ]);
+            }
+          },
         };
     }
-  })();
+  };
 
-  const IconComponent = iconConfig.Icon;
+  const buttonConfig = getButtonConfig();
 
   return (
-    <Pressable
-      onPress={iconConfig.onPress}
-      disabled={actionLoading || !iconConfig.onPress}
-      className="ml-2"
-      style={{ opacity: actionLoading ? 0.5 : 1 }}
+    <Button
+      onPress={buttonConfig.onPress}
+      disabled={actionLoading}
+      variant="secondary"
+      className="ml-2 min-w-[90px]"
     >
-      <IconComponent size={iconConfig.size} color={iconConfig.color} />
-    </Pressable>
+      {buttonConfig.text}
+    </Button>
   );
 }

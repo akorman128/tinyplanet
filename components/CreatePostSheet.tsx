@@ -39,9 +39,8 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
       label: string;
       icon: any;
     }[] = [
-      { value: "friends", label: "Friends", icon: Icons.unlocked },
-      { value: "mutuals", label: "Mutuals", icon: Icons.lock },
       { value: "public", label: "Public", icon: Icons.globe },
+      { value: "friends", label: "Friends", icon: Icons.unlocked },
     ];
 
     const onSubmit = async (data: { text: string }) => {
@@ -50,7 +49,7 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
         await createPost({ text: data.text, visibility });
         reset();
         setVisibility("friends");
-        (ref as any)?.current?.close();
+        (ref as React.RefObject<BottomSheet>).current.close();
         onPostCreated?.();
       } catch (err) {
         console.error("Error creating post:", err);
@@ -91,7 +90,7 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
                 {...field}
                 placeholder="What's on your mind?"
                 multiline
-                maxLength={500}
+                maxLength={1000}
                 showCharacterCount
                 error={errors.text?.message}
                 className="min-h-[120px]"

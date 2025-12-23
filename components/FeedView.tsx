@@ -78,7 +78,7 @@ export function FeedView() {
           tintColor={colors.hex.purple600}
         />
       }
-      contentContainerClassName="pb-20"
+      contentContainerClassName="pt-36 pb-20"
     />
   );
 }
