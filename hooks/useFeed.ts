@@ -12,19 +12,17 @@ export const useFeed = () => {
     data: PostWithAuthor[];
   }
 
-  const getFeed = async (options?: {
-    limit?: number;
-    offset?: number;
+  const getFeed = async (options: {
+    limit: number;
+    offset: number;
   }): Promise<GetFeedOutput> => {
-    const limit = options?.limit || 50;
-    const offset = options?.offset || 0;
-
     // The RLS policies handle the visibility filtering automatically
     // We just need to fetch posts and they'll be filtered based on:
     // - public posts (visible to all)
     // - author's own posts
     // - friends posts (if visibility = 'friends')
     // - mutuals posts (if visibility = 'mutuals')
+    const { limit, offset } = options;
     const { data: posts, error: postsError } = await supabase
       .from("posts")
       .select(
@@ -83,13 +81,12 @@ export const useFeed = () => {
 
   const getUserPosts = async (
     userId: string,
-    options?: {
-      limit?: number;
-      offset?: number;
+    options: {
+      limit: number;
+      offset: number;
     }
   ): Promise<GetUserPostsOutput> => {
-    const limit = options?.limit || 50;
-    const offset = options?.offset || 0;
+    const { limit, offset } = options;
 
     const { data: posts, error: postsError } = await supabase
       .from("posts")

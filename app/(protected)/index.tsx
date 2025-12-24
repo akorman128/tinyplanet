@@ -19,6 +19,7 @@ export default function Page() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeView, setActiveView] = useState<ViewMode>("map");
   const [isCreatePostSheetOpen, setIsCreatePostSheetOpen] = useState(false);
+  const [isCommentsSheetOpen, setIsCommentsSheetOpen] = useState(false);
   const router = useRouter();
   const { profileState } = useProfileStore();
   const createPostSheetRef = useRef<BottomSheet>(null);
@@ -48,7 +49,10 @@ export default function Page() {
         {activeView === "map" ? (
           <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
         ) : (
-          <FeedView key={refreshing ? "refreshing" : "idle"} />
+          <FeedView
+            key={refreshing ? "refreshing" : "idle"}
+            onCommentsSheetChange={setIsCommentsSheetOpen}
+          />
         )}
 
         {/* Toggle Buttons (Centered Top) */}
@@ -109,7 +113,7 @@ export default function Page() {
         </TouchableOpacity>
 
         {/* Floating + Button (Feed Only) */}
-        {activeView === "feed" && !isCreatePostSheetOpen && (
+        {activeView === "feed" && !isCreatePostSheetOpen && !isCommentsSheetOpen && (
           <TouchableOpacity
             className="absolute bottom-8 right-5 w-14 h-14 rounded-full bg-purple-600 justify-center items-center z-10"
             style={{

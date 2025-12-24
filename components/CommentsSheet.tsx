@@ -1,17 +1,35 @@
 import React, { forwardRef, useState, useEffect, useCallback } from "react";
-import { View, Text, Alert, Pressable, KeyboardAvoidingView, Platform } from "react-native";
-import BottomSheet, { BottomSheetView, BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import {
+  View,
+  Text,
+  Alert,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import BottomSheet, {
+  BottomSheetView,
+  BottomSheetFlatList,
+} from "@gorhom/bottom-sheet";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Input, Button, Icons, colors, LoadingState, EmptyState } from "@/design-system";
+import {
+  Input,
+  Button,
+  Icons,
+  colors,
+  LoadingState,
+  EmptyState,
+} from "@/design-system";
 import { useComments } from "@/hooks/useComments";
 import { useLikes } from "@/hooks/useLikes";
 import { CommentWithAuthor } from "@/types/comment";
 import { CommentItem } from "./CommentItem";
 
 const commentSchema = z.object({
-  body: z.string()
+  body: z
+    .string()
     .min(1, "Comment cannot be empty")
     .max(500, "Comment is too long")
     .trim(),
@@ -27,14 +45,19 @@ interface CommentsSheetProps {
 }
 
 export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
-  ({ postId, initialCommentCount, onCommentCountChange, onSheetChange }, ref) => {
+  (
+    { postId, initialCommentCount, onCommentCountChange, onSheetChange },
+    ref
+  ) => {
     const { getComments, createComment } = useComments();
     const { likeComment, unlikeComment } = useLikes();
 
     const [comments, setComments] = useState<CommentWithAuthor[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [replyingTo, setReplyingTo] = useState<CommentWithAuthor | null>(null);
+    const [replyingTo, setReplyingTo] = useState<CommentWithAuthor | null>(
+      null
+    );
     const [sheetIndex, setSheetIndex] = useState(-1);
 
     const {
@@ -68,10 +91,13 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
       }
     };
 
-    const handleSheetChange = useCallback((index: number) => {
-      setSheetIndex(index);
-      onSheetChange?.(index);
-    }, [onSheetChange]);
+    const handleSheetChange = useCallback(
+      (index: number) => {
+        setSheetIndex(index);
+        onSheetChange?.(index);
+      },
+      [onSheetChange]
+    );
 
     const onSubmit = async (data: CommentForm) => {
       setIsSubmitting(true);
@@ -159,40 +185,47 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
       }
     };
 
-    const handleLikeToggle = useCallback(async (commentId: string, currentState: boolean) => {
-      // Optimistic update
-      const updateCommentLike = (comments: CommentWithAuthor[]): CommentWithAuthor[] =>
-        comments.map((comment) => {
-          if (comment.id === commentId) {
-            return {
-              ...comment,
-              liked_by_user: !currentState,
-              like_count: currentState ? comment.like_count - 1 : comment.like_count + 1,
-            };
-          }
-          if (comment.replies && comment.replies.length > 0) {
-            return {
-              ...comment,
-              replies: updateCommentLike(comment.replies),
-            };
-          }
-          return comment;
-        });
+    const handleLikeToggle = useCallback(
+      async (commentId: string, currentState: boolean) => {
+        // Optimistic update
+        const updateCommentLike = (
+          comments: CommentWithAuthor[]
+        ): CommentWithAuthor[] =>
+          comments.map((comment) => {
+            if (comment.id === commentId) {
+              return {
+                ...comment,
+                liked_by_user: !currentState,
+                like_count: currentState
+                  ? comment.like_count - 1
+                  : comment.like_count + 1,
+              };
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              return {
+                ...comment,
+                replies: updateCommentLike(comment.replies),
+              };
+            }
+            return comment;
+          });
 
-      setComments((prev) => updateCommentLike(prev));
-
-      try {
-        if (currentState) {
-          await unlikeComment(commentId);
-        } else {
-          await likeComment(commentId);
-        }
-      } catch (err) {
-        // Revert on error
         setComments((prev) => updateCommentLike(prev));
-        console.error("Error toggling like:", err);
-      }
-    }, [likeComment, unlikeComment]);
+
+        try {
+          if (currentState) {
+            await unlikeComment(commentId);
+          } else {
+            await likeComment(commentId);
+          }
+        } catch (err) {
+          // Revert on error
+          setComments((prev) => updateCommentLike(prev));
+          console.error("Error toggling like:", err);
+        }
+      },
+      [likeComment, unlikeComment]
+    );
 
     const handleReply = useCallback((comment: CommentWithAuthor) => {
       setReplyingTo(comment);
@@ -218,7 +251,7 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
       <BottomSheet
         ref={ref}
         index={-1}
-        snapPoints={["50%", "90%"]}
+        snapPoints={["80%"]}
         enablePanDownToClose
         onChange={handleSheetChange}
         backgroundStyle={{
@@ -236,11 +269,6 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
         android_keyboardInputMode="adjustResize"
       >
         <BottomSheetView className="flex-1">
-          {/* Header */}
-          <View className="px-6 pt-4 pb-3 border-b border-gray-200">
-            <Text className="text-xl font-bold text-gray-900">Comments</Text>
-          </View>
-
           {/* Comments List */}
           {loading ? (
             <View className="flex-1 justify-center">
@@ -281,7 +309,7 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
               )}
 
               {/* Comment input and submit button */}
-              <View className="flex-row items-end gap-2">
+              <View className="flex-row items-end gap-2 ">
                 <View className="flex-1">
                   <Controller
                     control={control}
@@ -289,7 +317,7 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
                     render={({ field }) => (
                       <Input
                         {...field}
-                        placeholder="Add a comment..."
+                        placeholder="Add comment..."
                         multiline
                         maxLength={500}
                         error={errors.body?.message}

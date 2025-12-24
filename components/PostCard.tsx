@@ -1,24 +1,22 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import BottomSheet from "@gorhom/bottom-sheet";
 import { Avatar, Icons, colors } from "@/design-system";
 import { PostWithAuthor } from "@/types/post";
 import { useLikes } from "@/hooks/useLikes";
 import { formatTimeAgo } from "@/utils";
-import { CommentsSheet } from "./CommentsSheet";
 
 interface PostCardProps {
   post: PostWithAuthor;
   onUpdate: (postId: string, updates: Partial<PostWithAuthor>) => void;
   onDelete: (postId: string) => void;
+  onOpenComments: (postId: string, commentCount: number) => void;
 }
 
-export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
+export function PostCard({ post, onUpdate, onDelete, onOpenComments }: PostCardProps) {
   const router = useRouter();
   const { likePost, unlikePost } = useLikes();
   const [isLiking, setIsLiking] = useState(false);
-  const commentsSheetRef = useRef<BottomSheet>(null);
 
   const handleLikeToggle = async () => {
     if (isLiking) return;
@@ -51,11 +49,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
   };
 
   const handleComment = () => {
-    commentsSheetRef.current?.snapToIndex(0);
-  };
-
-  const handleCommentCountChange = (postId: string, newCount: number) => {
-    onUpdate(postId, { comment_count: newCount });
+    onOpenComments(post.id, post.comment_count);
   };
 
   const handleOptions = () => {
@@ -74,8 +68,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
   }[post.visibility];
 
   return (
-    <>
-      <Pressable className="flex-row px-5 py-4 border-b border-gray-200">
+    <Pressable className="flex-row px-5 py-4 border-b border-gray-200">
         <Pressable onPress={handleProfilePress}>
           <Avatar
             fullName={post.author.full_name}
@@ -150,13 +143,5 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
           </View>
         </View>
       </Pressable>
-
-      <CommentsSheet
-        ref={commentsSheetRef}
-        postId={post.id}
-        initialCommentCount={post.comment_count}
-        onCommentCountChange={handleCommentCountChange}
-      />
-    </>
   );
 }
