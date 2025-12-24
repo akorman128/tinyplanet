@@ -218,7 +218,7 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
       <BottomSheet
         ref={ref}
         index={-1}
-        snapPoints={["75%"]}
+        snapPoints={["50%", "90%"]}
         enablePanDownToClose
         onChange={handleSheetChange}
         backgroundStyle={{
@@ -231,8 +231,9 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
           width: 40,
           height: 4,
         }}
-        keyboardBehavior="interactive"
+        keyboardBehavior="extend"
         keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
       >
         <BottomSheetView className="flex-1">
           {/* Header */}

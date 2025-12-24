@@ -8,6 +8,7 @@
     "start:nocash": "npx expo start --clear --reset-cache",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:nocash": "expo run:ios --clear --reset-cache",
     "lint": "expo lint . --fix"
   },
   "dependencies": {

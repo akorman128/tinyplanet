@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+import { colors } from "./design-system/colors";
 module.exports = {
   content: [
     "./app/**/*.{js,jsx,ts,tsx}",
@@ -11,22 +12,21 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          light: "#6b61f3",
-          DEFAULT: "#4b44aa",
-          dark: "#403a92",
+          light: colors.hex.purple200,
+          DEFAULT: colors.hex.purple600,
+          dark: colors.hex.purple700,
         },
         purple: {
-          200: "#6b61f3",
-          400: "#6057db",
-          500: "#564ec2",
-          600: "#4b44aa",
-          700: "#403a92",
-          800: "#36317a",
-          900: "#2b2761",
+          200: colors.hex.purple200,
+          400: colors.hex.purple400,
+          500: colors.hex.purple500,
+          600: colors.hex.purple600,
+          700: colors.hex.purple700,
+          800: colors.hex.purple800,
+          900: colors.hex.purple900,
         },
       },
     },
   },
   plugins: [],
-}
-
+};
