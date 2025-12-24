@@ -11,8 +11,15 @@ import { Avatar, Icons } from "@/design-system";
 import { ButtonGroup } from "@/design-system/ButtonGroup";
 import { useProfileStore } from "@/stores/profileStore";
 import { colors } from "@/design-system/colors";
+import { PostVisibility } from "@/types/post";
 
 type ViewMode = "map" | "feed";
+
+interface EditPost {
+  id: string;
+  text: string;
+  visibility: PostVisibility;
+}
 
 export default function Page() {
   const insets = useSafeAreaInsets();
@@ -20,6 +27,7 @@ export default function Page() {
   const [activeView, setActiveView] = useState<ViewMode>("map");
   const [isCreatePostSheetOpen, setIsCreatePostSheetOpen] = useState(false);
   const [isCommentsSheetOpen, setIsCommentsSheetOpen] = useState(false);
+  const [editPost, setEditPost] = useState<EditPost | undefined>(undefined);
   const router = useRouter();
   const { profileState } = useProfileStore();
   const createPostSheetRef = useRef<BottomSheet>(null);

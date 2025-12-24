@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from "react";
+import React, { forwardRef, useState, useEffect } from "react";
 import { View, Text, Alert, Pressable } from "react-native";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useForm, Controller } from "react-hook-form";
@@ -12,27 +12,45 @@ const createPostSchema = z.object({
   text: z.string().min(1, "Post cannot be empty").max(500, "Post is too long"),
 });
 
+interface EditPost {
+  id: string;
+  text: string;
+  visibility: PostVisibility;
+}
+
 interface CreatePostSheetProps {
+  editPost?: EditPost;
   onPostCreated?: () => void;
+  onPostUpdated?: () => void;
   onSheetChange?: (index: number) => void;
 }
 
 export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
-  ({ onPostCreated, onSheetChange }, ref) => {
-    const { createPost } = usePosts();
-    const [visibility, setVisibility] = useState<PostVisibility>("friends");
+  ({ editPost, onPostCreated, onPostUpdated, onSheetChange }, ref) => {
+    const { createPost, updatePost } = usePosts();
+    const [visibility, setVisibility] = useState<PostVisibility>("public");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const isEditMode = !!editPost;
 
     const {
       control,
       handleSubmit,
       reset,
+      setValue,
       formState: { errors },
     } = useForm({
       resolver: zodResolver(createPostSchema),
       defaultValues: { text: "" },
       mode: "onChange",
     });
+
+    // Pre-populate form when editing
+    useEffect(() => {
+      if (editPost) {
+        setValue("text", editPost.text);
+        setVisibility(editPost.visibility);
+      }
+    }, [editPost, setValue]);
 
     const visibilityOptions: {
       value: PostVisibility;
@@ -46,14 +64,26 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
     const onSubmit = async (data: { text: string }) => {
       setIsSubmitting(true);
       try {
-        await createPost({ text: data.text, visibility });
+        if (isEditMode && editPost) {
+          await updatePost(editPost.id, { text: data.text, visibility });
+          onPostUpdated?.();
+        } else {
+          await createPost({ text: data.text, visibility });
+          onPostCreated?.();
+        }
         reset();
-        setVisibility("friends");
-        (ref as React.RefObject<BottomSheet>).current.close();
-        onPostCreated?.();
+        setVisibility("public");
+        (ref as React.RefObject<BottomSheet>).current?.snapToIndex(-1);
+        (ref as React.RefObject<BottomSheet>).current?.close();
       } catch (err) {
-        console.error("Error creating post:", err);
-        Alert.alert("Error", "Failed to create post");
+        console.error(
+          `Error ${isEditMode ? "updating" : "creating"} post:`,
+          err
+        );
+        Alert.alert(
+          "Error",
+          `Failed to ${isEditMode ? "update" : "create"} post`
+        );
       } finally {
         setIsSubmitting(false);
       }
@@ -79,7 +109,7 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
       >
         <BottomSheetView className="flex-1 px-6 pt-4 pb-6">
           <Text className="text-2xl font-bold text-gray-900 mb-6">
-            make a bloop
+            {isEditMode ? "edit bloop" : "make a bloop"}
           </Text>
 
           <Controller
@@ -142,7 +172,13 @@ export const CreatePostSheet = forwardRef<BottomSheet, CreatePostSheetProps>(
             onPress={handleSubmit(onSubmit)}
             disabled={isSubmitting || !!errors.text}
           >
-            {isSubmitting ? "Posting..." : "Post"}
+            {isSubmitting
+              ? isEditMode
+                ? "Saving..."
+                : "Posting..."
+              : isEditMode
+                ? "Save"
+                : "Post"}
           </Button>
         </BottomSheetView>
       </BottomSheet>

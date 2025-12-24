@@ -25,8 +25,7 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
 
   // CommentsSheet state
   const commentsSheetRef = useRef<BottomSheet>(null);
-  const [activePostId, setActivePostId] = useState<string | null>(null);
-  const [activeCommentCount, setActiveCommentCount] = useState(0);
+  const [activePost, setActivePost] = useState<{ id: string; commentCount: number } | null>(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -84,8 +83,7 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
 
   const handleOpenComments = useCallback(
     (postId: string, commentCount: number) => {
-      setActivePostId(postId);
-      setActiveCommentCount(commentCount);
+      setActivePost({ id: postId, commentCount });
       commentsSheetRef.current?.snapToIndex(0);
     },
     []
@@ -93,7 +91,7 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
 
   const handleCommentCountChange = useCallback(
     (postId: string, newCount: number) => {
-      setActiveCommentCount(newCount);
+      setActivePost((prev) => prev ? { ...prev, commentCount: newCount } : null);
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId ? { ...p, comment_count: newCount } : p
@@ -157,11 +155,11 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
         contentContainerClassName="pt-36 pb-20"
       />
 
-      {activePostId && (
+      {activePost && (
         <CommentsSheet
           ref={commentsSheetRef}
-          postId={activePostId}
-          initialCommentCount={activeCommentCount}
+          postId={activePost.id}
+          initialCommentCount={activePost.commentCount}
           onCommentCountChange={handleCommentCountChange}
           onSheetChange={handleCommentsSheetChange}
         />
