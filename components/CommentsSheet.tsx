@@ -275,8 +275,8 @@ export const CommentsSheet = forwardRef<BottomSheet, CommentsSheetProps>(
               <LoadingState />
             </View>
           ) : comments.length === 0 ? (
-            <View className="flex-1 justify-center">
-              <EmptyState message="No comments yet. Be the first!" />
+            <View className="flex-1 mt-10 mb-10 justify-center">
+              <EmptyState message="Start yapping..." />
             </View>
           ) : (
             <BottomSheetFlatList

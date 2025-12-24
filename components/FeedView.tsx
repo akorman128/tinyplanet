@@ -1,19 +1,31 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { FlatList, RefreshControl, View, ActivityIndicator } from "react-native";
+import {
+  FlatList,
+  RefreshControl,
+  View,
+  ActivityIndicator,
+} from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { useFeed } from "@/hooks/useFeed";
 import { PostCard } from "./PostCard";
 import { CommentsSheet } from "./CommentsSheet";
 import { EmptyState, LoadingState, ErrorState, colors } from "@/design-system";
-import { PostWithAuthor } from "@/types/post";
+import { PostWithAuthor, PostVisibility } from "@/types/post";
+
+interface EditPost {
+  id: string;
+  text: string;
+  visibility: PostVisibility;
+}
 
 interface FeedViewProps {
   onCommentsSheetChange?: (isOpen: boolean) => void;
+  onEditPost?: (post: EditPost) => void;
 }
 
 const PAGE_SIZE = 10;
 
-export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
+export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
   const { getFeed } = useFeed();
   const [posts, setPosts] = useState<PostWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +37,10 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
 
   // CommentsSheet state
   const commentsSheetRef = useRef<BottomSheet>(null);
-  const [activePost, setActivePost] = useState<{ id: string; commentCount: number } | null>(null);
+  const [activePost, setActivePost] = useState<{
+    id: string;
+    commentCount: number;
+  } | null>(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -68,7 +83,7 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
     }
   }, [getFeed, offset, loadingMore, hasMore, refreshing]);
 
-  const handlePostUpdate = useCallback(
+  const handleLikePost = useCallback(
     (postId: string, updates: Partial<PostWithAuthor>) => {
       setPosts((prev) =>
         prev.map((p) => (p.id === postId ? { ...p, ...updates } : p))
@@ -91,7 +106,9 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
 
   const handleCommentCountChange = useCallback(
     (postId: string, newCount: number) => {
-      setActivePost((prev) => prev ? { ...prev, commentCount: newCount } : null);
+      setActivePost((prev) =>
+        prev ? { ...prev, commentCount: newCount } : null
+      );
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId ? { ...p, comment_count: newCount } : p
@@ -136,9 +153,10 @@ export function FeedView({ onCommentsSheetChange }: FeedViewProps) {
         renderItem={({ item }) => (
           <PostCard
             post={item}
-            onUpdate={handlePostUpdate}
+            onLike={handleLikePost}
             onDelete={handlePostDelete}
             onOpenComments={handleOpenComments}
+            onEditPost={onEditPost}
           />
         )}
         keyExtractor={(item) => item.id}

@@ -2,24 +2,32 @@ import React, { useState } from "react";
 import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Avatar, Icons, colors } from "@/design-system";
-import { PostWithAuthor } from "@/types/post";
+import { PostWithAuthor, PostVisibility } from "@/types/post";
 import { useLikes } from "@/hooks/useLikes";
 import { usePosts } from "@/hooks/usePosts";
 import { useSupabase } from "@/hooks/useSupabase";
 import { formatTimeAgo } from "@/utils";
 
+interface EditPost {
+  id: string;
+  text: string;
+  visibility: PostVisibility;
+}
+
 interface PostCardProps {
   post: PostWithAuthor;
-  onUpdate: (postId: string, updates: Partial<PostWithAuthor>) => void;
+  onLike: (postId: string, updates: Partial<PostWithAuthor>) => void;
   onDelete: (postId: string) => void;
   onOpenComments: (postId: string, commentCount: number) => void;
+  onEditPost?: (post: EditPost) => void;
 }
 
 export function PostCard({
   post,
-  onUpdate,
+  onLike,
   onDelete,
   onOpenComments,
+  onEditPost,
 }: PostCardProps) {
   const router = useRouter();
   const { session } = useSupabase();
@@ -34,7 +42,7 @@ export function PostCard({
     const wasLiked = post.liked_by_user;
 
     // Optimistic update
-    onUpdate(post.id, {
+    onLike(post.id, {
       liked_by_user: !wasLiked,
       like_count: wasLiked ? post.like_count - 1 : post.like_count + 1,
     });
@@ -46,11 +54,6 @@ export function PostCard({
         await likePost(post.id);
       }
     } catch (err) {
-      // Revert on error
-      onUpdate(post.id, {
-        liked_by_user: wasLiked,
-        like_count: post.like_count,
-      });
       console.error("Error toggling like:", err);
     } finally {
       setIsLiking(false);
@@ -73,9 +76,10 @@ export function PostCard({
       {
         text: "Edit Post",
         onPress: () => {
-          router.push({
-            pathname: "/edit-post",
-            params: { postId: post.id },
+          onEditPost?.({
+            id: post.id,
+            text: post.text,
+            visibility: post.visibility,
           });
         },
       },
@@ -155,10 +159,10 @@ export function PostCard({
         </Text>
 
         {/* Actions row */}
-        <View className="flex-row items-center gap-6">
+        <View className="flex-row items-center gap-4">
           {/* Visibility indicator */}
           {visibilityIcon && (
-            <View className="flex-row items-center mb-3">
+            <View className="flex-row items-center">
               {visibilityIcon}
               <Text className="text-xs text-gray-500 ml-1 capitalize">
                 {post.visibility}

@@ -50,6 +50,26 @@ export default function Page() {
     setTimeout(() => setRefreshing(false), 100);
   };
 
+  const handlePostUpdated = () => {
+    // Refresh feed after post update
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 100);
+    setEditPost(undefined);
+  };
+
+  const handleEditPost = (post: EditPost) => {
+    setEditPost(post);
+    createPostSheetRef.current?.snapToIndex(0);
+  };
+
+  const handleSheetChange = (index: number) => {
+    setIsCreatePostSheetOpen(index >= 0);
+    // Clear edit post when sheet closes
+    if (index < 0) {
+      setEditPost(undefined);
+    }
+  };
+
   return (
     <GestureHandlerRootView className="flex-1">
       <View className="flex-1">
@@ -60,6 +80,7 @@ export default function Page() {
           <FeedView
             key={refreshing ? "refreshing" : "idle"}
             onCommentsSheetChange={setIsCommentsSheetOpen}
+            onEditPost={handleEditPost}
           />
         )}
 
@@ -140,8 +161,10 @@ export default function Page() {
         {/* Create Post Bottom Sheet */}
         <CreatePostSheet
           ref={createPostSheetRef}
+          editPost={editPost}
           onPostCreated={handlePostCreated}
-          onSheetChange={(index) => setIsCreatePostSheetOpen(index >= 0)}
+          onPostUpdated={handlePostUpdated}
+          onSheetChange={handleSheetChange}
         />
       </View>
     </GestureHandlerRootView>
