@@ -14,11 +14,9 @@ import {
 import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { useProfile } from "@/hooks/useProfile";
 import { useVibe } from "@/hooks/useVibe";
-import { useFriends } from "@/hooks/useFriends";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { formatBirthday } from "@/utils";
 import { Profile } from "@/types/profile";
-import { FriendshipDisplayStatus } from "@/types/friendship";
 import { VibeDisplay } from "@/components/VibeDisplay";
 import { FriendStatusSection } from "@/components/FriendStatusSection";
 
@@ -31,13 +29,6 @@ export default function ProfileScreen() {
   const profile = useRequireProfile();
   const { getProfile } = useProfile();
   const { getVibes, isLoaded: vibeIsLoaded } = useVibe();
-  const {
-    getFriendshipStatus,
-    sendFriendRequest,
-    acceptFriendRequest,
-    declineFriendRequest,
-    unfriend,
-  } = useFriends();
 
   const [otherUserProfile, setOtherUserProfile] = useState<Profile | null>(
     null
@@ -51,11 +42,7 @@ export default function ProfileScreen() {
   const [vibeEmojis, setVibeEmojis] = useState<string[]>([]);
   const [totalVibeCount, setTotalVibeCount] = useState(0);
   const [vibesLoading, setVibesLoading] = useState(false);
-  const [friendshipStatus, setFriendshipStatus] = useState<
-    FriendshipDisplayStatus | "loading"
-  >("loading");
   const [mutualCount, setMutualCount] = useState(0);
-  const [actionLoading, setActionLoading] = useState(false);
 
   // Determine which profile to display (memoized)
   const isViewingOwnProfile = useMemo(() => !userId, [userId]);
@@ -85,30 +72,14 @@ export default function ProfileScreen() {
     fetchOtherUserProfile();
   }, [fetchOtherUserProfile]);
 
-  // Fetch friendship status and set mutual count from profile
-  const fetchFriendshipData = useCallback(async () => {
-    if (!displayProfile?.id || isViewingOwnProfile) {
-      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
-      setMutualCount(0);
-      return;
-    }
-
-    setFriendshipStatus("loading");
-    try {
-      const statusResult = await getFriendshipStatus(displayProfile.id);
-      setFriendshipStatus(statusResult.status);
-      // Use mutual_friend_count from the profile data (returned by RPC)
-      setMutualCount(displayProfile.mutual_friend_count ?? 0);
-    } catch (err) {
-      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
-      setMutualCount(0);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayProfile?.id, displayProfile?.mutual_friend_count, isViewingOwnProfile]);
-
+  // Set mutual count from profile data
   useEffect(() => {
-    fetchFriendshipData();
-  }, [fetchFriendshipData]);
+    if (displayProfile && !isViewingOwnProfile) {
+      setMutualCount(displayProfile.mutual_friend_count ?? 0);
+    } else {
+      setMutualCount(0);
+    }
+  }, [displayProfile, isViewingOwnProfile]);
 
   // Fetch vibes for the displayed profile
   const fetchVibes = useCallback(async () => {
@@ -177,87 +148,6 @@ export default function ProfileScreen() {
     }
   };
 
-  // Friend action handlers
-  const handleAddFriend = async () => {
-    if (!userId) return;
-
-    setActionLoading(true);
-    try {
-      await sendFriendRequest({
-        targetUserId: userId,
-      });
-      setFriendshipStatus(FriendshipDisplayStatus.PENDING_SENT);
-    } catch (err) {
-      setError("Failed to send friend request");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleUnfriend = async () => {
-    if (!userId) return;
-
-    setActionLoading(true);
-    try {
-      await unfriend({
-        targetUserId: userId,
-      });
-      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
-    } catch (err) {
-      setError("Failed to unfriend");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleAcceptRequest = async () => {
-    if (!userId) return;
-
-    setActionLoading(true);
-    try {
-      await acceptFriendRequest({
-        fromUserId: userId,
-      });
-      setFriendshipStatus(FriendshipDisplayStatus.FRIENDS);
-    } catch (err) {
-      setError("Failed to accept friend request");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleDeclineRequest = async () => {
-    if (!userId) return;
-
-    setActionLoading(true);
-    try {
-      await declineFriendRequest({
-        targetUserId: userId,
-      });
-      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
-    } catch (err) {
-      setError("Failed to decline friend request");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleCancelRequest = async () => {
-    if (!userId) return;
-
-    setActionLoading(true);
-    try {
-      await declineFriendRequest({
-        targetUserId: userId,
-      });
-      setFriendshipStatus(FriendshipDisplayStatus.NOT_FRIENDS);
-    } catch (err) {
-      setError("Failed to cancel friend request");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   // Loading state
   if (loading || (!isViewingOwnProfile && !otherUserProfile)) {
     return (
@@ -313,27 +203,24 @@ export default function ProfileScreen() {
             <Heading className="text-purple-900 text-center">
               {displayProfile.full_name}
             </Heading>
-            {!isViewingOwnProfile && (
-              <FriendStatusSection
-                status={friendshipStatus}
-                onAddFriend={handleAddFriend}
-                onUnfriend={handleUnfriend}
-                onCancelRequest={handleCancelRequest}
-                onAccept={handleAcceptRequest}
-                onDecline={handleDeclineRequest}
-                actionLoading={actionLoading}
-              />
-            )}
           </View>
 
-          {/* Mutual Friends Badge - only show for other users' profiles */}
-          {!isViewingOwnProfile && mutualCount > 0 && (
-            <Pressable onPress={handleMutualsPress} className="mb-4">
-              <Badge variant="secondary" size="small">
-                {mutualCount === 1 ? "1 mutual" : `${mutualCount} mutuals`}
-              </Badge>
-            </Pressable>
-          )}
+          <View className="flex-row items-center justify-center gap-2 mb-2">
+            {!isViewingOwnProfile && userId && (
+              <FriendStatusSection
+                userId={userId}
+                onError={(errorMessage) => setError(errorMessage)}
+              />
+            )}
+            {/* Mutual Friends Badge - only show for other users' profiles */}
+            {!isViewingOwnProfile && mutualCount > 0 && (
+              <Pressable onPress={handleMutualsPress} className="mb-4">
+                <Badge variant="secondary" size="small">
+                  {mutualCount === 1 ? "1 mutual" : `${mutualCount} mutuals`}
+                </Badge>
+              </Pressable>
+            )}
+          </View>
 
           {/* Vibes */}
           {vibeEmojis.length > 0 && (

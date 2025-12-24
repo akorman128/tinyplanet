@@ -1,16 +1,13 @@
-import React from "react";
-import { ActionSheetIOS, Platform, Alert } from "react-native";
-import { Button } from "@/design-system";
+import React, { useState, useEffect } from "react";
+import { ActionSheetIOS, Platform, Alert, Pressable } from "react-native";
+import { Badge, Button } from "@/design-system";
 import { FriendshipDisplayStatus } from "@/types/friendship";
+import { useFriends } from "@/hooks/useFriends";
 
 type FriendStatusSectionProps = {
-  status: FriendshipDisplayStatus | "loading";
-  onAddFriend?: () => void;
-  onUnfriend?: () => void;
-  onCancelRequest?: () => void;
-  onAccept?: () => void;
-  onDecline?: () => void;
-  actionLoading?: boolean;
+  userId: string;
+  onStatusChange?: (status: FriendshipDisplayStatus) => void;
+  onError?: (error: string) => void;
 };
 
 const showConfirmation = (
@@ -45,24 +42,112 @@ const showConfirmation = (
   }
 };
 
-
 export function FriendStatusSection({
-  status,
-  onAddFriend,
-  onUnfriend,
-  onCancelRequest,
-  onAccept,
-  onDecline,
-  actionLoading = false,
+  userId,
+  onStatusChange,
+  onError,
 }: FriendStatusSectionProps) {
+  const {
+    getFriendshipStatus,
+    sendFriendRequest,
+    acceptFriendRequest,
+    declineFriendRequest,
+    unfriend,
+  } = useFriends();
+
+  const [status, setStatus] = useState<FriendshipDisplayStatus | "loading">(
+    "loading"
+  );
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Fetch initial friendship status
+  useEffect(() => {
+    const fetchStatus = async () => {
+      setStatus("loading");
+      try {
+        const statusResult = await getFriendshipStatus(userId);
+        setStatus(statusResult.status);
+        onStatusChange?.(statusResult.status);
+      } catch (err) {
+        setStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+        onStatusChange?.(FriendshipDisplayStatus.NOT_FRIENDS);
+      }
+    };
+
+    fetchStatus();
+  }, [userId, getFriendshipStatus, onStatusChange]);
+
+  const updateStatus = (newStatus: FriendshipDisplayStatus) => {
+    setStatus(newStatus);
+    onStatusChange?.(newStatus);
+  };
+
+  const handleAddFriend = async () => {
+    setActionLoading(true);
+    try {
+      await sendFriendRequest({ targetUserId: userId });
+      updateStatus(FriendshipDisplayStatus.PENDING_SENT);
+    } catch (err) {
+      onError?.("Failed to send friend request");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnfriend = async () => {
+    setActionLoading(true);
+    try {
+      await unfriend({ targetUserId: userId });
+      updateStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+    } catch (err) {
+      onError?.("Failed to unfriend");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAcceptRequest = async () => {
+    setActionLoading(true);
+    try {
+      await acceptFriendRequest({ fromUserId: userId });
+      updateStatus(FriendshipDisplayStatus.FRIENDS);
+    } catch (err) {
+      onError?.("Failed to accept friend request");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    setActionLoading(true);
+    try {
+      await declineFriendRequest({ targetUserId: userId });
+      updateStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+    } catch (err) {
+      onError?.("Failed to decline friend request");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    setActionLoading(true);
+    try {
+      await declineFriendRequest({ targetUserId: userId });
+      updateStatus(FriendshipDisplayStatus.NOT_FRIENDS);
+    } catch (err) {
+      onError?.("Failed to cancel friend request");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (status === "loading") {
     return null;
   }
 
   const handleFollow = () => {
-    if (onAddFriend) {
-      onAddFriend();
-    }
+    handleAddFriend();
   };
 
   const handlePending = () => {
@@ -70,7 +155,7 @@ export function FriendStatusSection({
       "Cancel Friend Request",
       "Do you want to cancel this friend request?",
       "Cancel Request",
-      onCancelRequest,
+      handleCancelRequest,
       false
     );
   };
@@ -80,7 +165,7 @@ export function FriendStatusSection({
       "Unfriend",
       "Are you sure you want to remove this friend?",
       "Unfriend",
-      onUnfriend,
+      handleUnfriend,
       true
     );
   };
@@ -103,8 +188,6 @@ export function FriendStatusSection({
           onPress: handleFriends,
         };
       case FriendshipDisplayStatus.PENDING_RECEIVED:
-        // For incoming requests, we could show different UI
-        // For now, showing a simple "Respond" button
         return {
           text: "Respond",
           onPress: () => {
@@ -116,18 +199,22 @@ export function FriendStatusSection({
                   destructiveButtonIndex: 2,
                 },
                 (buttonIndex) => {
-                  if (buttonIndex === 1 && onAccept) {
-                    onAccept();
-                  } else if (buttonIndex === 2 && onDecline) {
-                    onDecline();
+                  if (buttonIndex === 1) {
+                    handleAcceptRequest();
+                  } else if (buttonIndex === 2) {
+                    handleDeclineRequest();
                   }
                 }
               );
             } else {
               Alert.alert("Friend Request", "What would you like to do?", [
                 { text: "Cancel", style: "cancel" },
-                { text: "Accept", onPress: onAccept },
-                { text: "Decline", onPress: onDecline, style: "destructive" },
+                { text: "Accept", onPress: handleAcceptRequest },
+                {
+                  text: "Decline",
+                  onPress: handleDeclineRequest,
+                  style: "destructive",
+                },
               ]);
             }
           },
@@ -138,13 +225,10 @@ export function FriendStatusSection({
   const buttonConfig = getButtonConfig();
 
   return (
-    <Button
-      onPress={buttonConfig.onPress}
-      disabled={actionLoading}
-      variant="secondary"
-      className="ml-2 min-w-[90px]"
-    >
-      {buttonConfig.text}
-    </Button>
+    <Pressable onPress={buttonConfig.onPress} className="mb-4">
+      <Badge variant="default" size="small">
+        {buttonConfig.text}
+      </Badge>
+    </Pressable>
   );
 }
