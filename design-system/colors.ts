@@ -43,6 +43,7 @@ export const colors = {
     purple900: "#4c1d95",
 
     // Neutral colors
+    gray300: "#d1d5db", // gray-300
     gray500: "#6b7280", // gray-500
     placeholder: "#9CA3AF", // gray-400 equivalent
     white: "#ffffff",

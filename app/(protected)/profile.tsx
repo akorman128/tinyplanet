@@ -10,6 +10,8 @@ import {
   LoadingState,
   ErrorState,
   Heading,
+  Icons,
+  colors,
 } from "@/design-system";
 import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,15 +22,12 @@ import { Profile } from "@/types/profile";
 import { VibeDisplay } from "@/components/VibeDisplay";
 import { FriendStatusSection } from "@/components/FriendStatusSection";
 
-// Constants
-const MAX_VIBES_DISPLAY = 6;
-
 export default function ProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams<{ userId?: string }>();
   const profile = useRequireProfile();
   const { getProfile } = useProfile();
-  const { getVibes, isLoaded: vibeIsLoaded } = useVibe();
+  const { getTopVibes, isLoaded: vibeIsLoaded } = useVibe();
 
   const [otherUserProfile, setOtherUserProfile] = useState<Profile | null>(
     null
@@ -39,7 +38,9 @@ export default function ProfileScreen() {
     string | null
   >(null);
   const [geocoding, setGeocoding] = useState(false);
-  const [vibeEmojis, setVibeEmojis] = useState<string[]>([]);
+  const [topVibes, setTopVibes] = useState<{ emoji: string; count: number }[]>(
+    []
+  );
   const [totalVibeCount, setTotalVibeCount] = useState(0);
   const [vibesLoading, setVibesLoading] = useState(false);
   const [mutualCount, setMutualCount] = useState(0);
@@ -87,10 +88,12 @@ export default function ProfileScreen() {
 
     setVibesLoading(true);
     try {
-      const result = await getVibes({ recipientId: displayProfile.id });
-      const allEmojis = result.data.flatMap((vibe) => vibe.emojis);
-      setVibeEmojis(allEmojis);
-      setTotalVibeCount(result.data.length);
+      const result = await getTopVibes({
+        userId: displayProfile.id,
+        limit: 5,
+      });
+      setTopVibes(result.data);
+      setTotalVibeCount(result.totalCount);
     } catch (err) {
       // Silently fail for vibes
     } finally {
@@ -176,18 +179,27 @@ export default function ProfileScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-1 bg-white pt-12">
+      <Stack.Screen
+        options={{ headerShown: false, title: profile.full_name }}
+      />
+      <View className="flex-1 bg-white pt-8">
         {/* Header */}
         <ScreenHeader
           title={isViewingOwnProfile ? "My Profile" : "Profile"}
           showBackButton={true}
+          rightComponent={
+            isViewingOwnProfile ? (
+              <Pressable onPress={() => router.push("/edit-profile")}>
+                <Icons.edit size={24} color={colors.hex.purple600} />
+              </Pressable>
+            ) : undefined
+          }
         />
 
         {/* Content */}
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-8 pb-12 items-center"
+          contentContainerClassName="px-6 pt-8 pb-8 items-center"
         >
           {/* Avatar */}
           <View className="mb-4">
@@ -223,14 +235,13 @@ export default function ProfileScreen() {
           </View>
 
           {/* Vibes */}
-          {vibeEmojis.length > 0 && (
-            <VibeDisplay
-              vibeEmojis={vibeEmojis}
-              totalVibeCount={totalVibeCount}
-              onPress={handleVibePress}
-              maxDisplay={MAX_VIBES_DISPLAY}
-            />
-          )}
+          <VibeDisplay
+            topVibes={topVibes}
+            totalVibeCount={totalVibeCount}
+            onPress={handleVibePress}
+            recipientId={!isViewingOwnProfile ? displayProfile.id : undefined}
+            onVibeCreated={fetchVibes}
+          />
 
           {/* Info Sections */}
           <View className="w-full mb-8">
@@ -270,18 +281,6 @@ export default function ProfileScreen() {
               <InfoRow label="Website" value={displayProfile.website} />
             )}
           </View>
-
-          {/* Edit Button - only show for own profile */}
-          {isViewingOwnProfile && (
-            <View className="w-full mt-2">
-              <Button
-                onPress={() => router.push("/edit-profile")}
-                variant="primary"
-              >
-                Edit
-              </Button>
-            </View>
-          )}
         </ScrollView>
       </View>
     </>

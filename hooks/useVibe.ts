@@ -61,6 +61,69 @@ export const useVibe = () => {
     return { data: data as VibeWithSender[] };
   };
 
+  interface GetTopVibesDto {
+    userId: string;
+    limit?: number;
+  }
+
+  interface TopVibeItem {
+    emoji: string;
+    count: number;
+  }
+
+  interface GetTopVibesOutputDto {
+    data: TopVibeItem[];
+    totalCount: number;
+  }
+
+  const getTopVibes = async (
+    input: GetTopVibesDto
+  ): Promise<GetTopVibesOutputDto> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    const { userId, limit = 5 } = input;
+
+    const { data, error } = await supabase.rpc("get_top_vibes", {
+      p_user_id: userId,
+      p_limit: limit,
+    });
+
+    if (error) throw error;
+
+    // Calculate total count from the returned data
+    const totalCount = data?.reduce(
+      (sum: number, item: TopVibeItem) => sum + item.count,
+      0
+    ) ?? 0;
+
+    return { data: data ?? [], totalCount };
+  };
+
+  const hasGivenVibe = async (
+    recipientId: string,
+    giverId?: string
+  ): Promise<boolean> => {
+    if (!isLoaded) {
+      throw new Error("Supabase not initialized");
+    }
+
+    const giver = giverId ?? profile.id;
+
+    // User can't give themselves a vibe
+    if (recipientId === giver) {
+      return true;
+    }
+
+    const { data } = await getVibes({
+      recipientId,
+      giverId: giver,
+    });
+
+    return data.length > 0;
+  };
+
   // ––– MUTATIONS –––
 
   interface createVibeDto {
@@ -163,6 +226,8 @@ export const useVibe = () => {
     isLoaded,
     getVibes,
     getVibesWithSenderInfo,
+    getTopVibes,
+    hasGivenVibe,
     createVibe,
     deleteVibe,
     updateVibe,

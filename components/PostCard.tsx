@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { View, Text, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import BottomSheet from "@gorhom/bottom-sheet";
 import { Avatar, Icons, colors } from "@/design-system";
 import { PostWithAuthor } from "@/types/post";
 import { useLikes } from "@/hooks/useLikes";
 import { formatTimeAgo } from "@/utils";
+import { CommentsSheet } from "./CommentsSheet";
 
 interface PostCardProps {
   post: PostWithAuthor;
@@ -16,6 +18,7 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
   const router = useRouter();
   const { likePost, unlikePost } = useLikes();
   const [isLiking, setIsLiking] = useState(false);
+  const commentsSheetRef = useRef<BottomSheet>(null);
 
   const handleLikeToggle = async () => {
     if (isLiking) return;
@@ -48,8 +51,11 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
   };
 
   const handleComment = () => {
-    // Future: Navigate to post detail with comments
-    Alert.alert("Comments", "Comment view coming soon");
+    commentsSheetRef.current?.snapToIndex(0);
+  };
+
+  const handleCommentCountChange = (postId: string, newCount: number) => {
+    onUpdate(postId, { comment_count: newCount });
   };
 
   const handleOptions = () => {
@@ -68,80 +74,89 @@ export function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
   }[post.visibility];
 
   return (
-    <Pressable className="flex-row px-5 py-4 border-b border-gray-200">
-      <Pressable onPress={handleProfilePress}>
-        <Avatar
-          fullName={post.author.full_name}
-          avatarUrl={post.author.avatar_url}
-          size="small"
-        />
-      </Pressable>
+    <>
+      <Pressable className="flex-row px-5 py-4 border-b border-gray-200">
+        <Pressable onPress={handleProfilePress}>
+          <Avatar
+            fullName={post.author.full_name}
+            avatarUrl={post.author.avatar_url}
+            size="small"
+          />
+        </Pressable>
 
-      <View className="flex-1 ml-3">
-        {/* Header: Name • Time */}
-        <View className="flex-row items-center mb-1">
-          <Text className="text-base font-semibold text-gray-900">
-            {post.author.full_name}
-          </Text>
-          <Text className="text-sm text-gray-500 ml-2">
-            • {formatTimeAgo(post.created_at)}
-          </Text>
-        </View>
-
-        {/* Post text */}
-        <Text className="text-base text-gray-900 leading-5 mb-2">
-          {post.text}
-        </Text>
-
-        {/* Visibility indicator */}
-        {visibilityIcon && (
-          <View className="flex-row items-center mb-3">
-            {visibilityIcon}
-            <Text className="text-xs text-gray-500 ml-1 capitalize">
-              {post.visibility}
+        <View className="flex-1 ml-3">
+          {/* Header: Name • Time */}
+          <View className="flex-row items-center mb-1">
+            <Text className="text-base font-semibold text-gray-900">
+              {post.author.full_name}
+            </Text>
+            <Text className="text-sm text-gray-500 ml-2">
+              • {formatTimeAgo(post.created_at)}
             </Text>
           </View>
-        )}
 
-        {/* Actions row */}
-        <View className="flex-row items-center gap-6">
-          {/* Like */}
-          <Pressable
-            className="flex-row items-center"
-            onPress={handleLikeToggle}
-            disabled={isLiking}
-          >
-            <Icons.heartOutline
-              size={20}
-              color={post.liked_by_user ? colors.hex.error : colors.hex.gray500}
-            />
-            {post.like_count > 0 && (
-              <Text
-                className={`text-sm ml-1 ${
-                  post.liked_by_user ? "text-red-500" : "text-gray-500"
-                }`}
-              >
-                {post.like_count}
+          {/* Post text */}
+          <Text className="text-base text-gray-900 leading-5 mb-2">
+            {post.text}
+          </Text>
+
+          {/* Visibility indicator */}
+          {visibilityIcon && (
+            <View className="flex-row items-center mb-3">
+              {visibilityIcon}
+              <Text className="text-xs text-gray-500 ml-1 capitalize">
+                {post.visibility}
               </Text>
-            )}
-          </Pressable>
+            </View>
+          )}
 
-          {/* Comment */}
-          <Pressable className="flex-row items-center" onPress={handleComment}>
-            <Icons.comment size={20} color={colors.hex.gray500} />
-            {post.comment_count > 0 && (
-              <Text className="text-sm text-gray-500 ml-1">
-                {post.comment_count}
-              </Text>
-            )}
-          </Pressable>
+          {/* Actions row */}
+          <View className="flex-row items-center gap-6">
+            {/* Like */}
+            <Pressable
+              className="flex-row items-center"
+              onPress={handleLikeToggle}
+              disabled={isLiking}
+            >
+              <Icons.heartOutline
+                size={20}
+                color={post.liked_by_user ? colors.hex.error : colors.hex.gray500}
+              />
+              {post.like_count > 0 && (
+                <Text
+                  className={`text-sm ml-1 ${
+                    post.liked_by_user ? "text-red-500" : "text-gray-500"
+                  }`}
+                >
+                  {post.like_count}
+                </Text>
+              )}
+            </Pressable>
 
-          {/* Options */}
-          <Pressable onPress={handleOptions}>
-            <Icons.dots size={20} color={colors.hex.gray500} />
-          </Pressable>
+            {/* Comment */}
+            <Pressable className="flex-row items-center" onPress={handleComment}>
+              <Icons.comment size={20} color={colors.hex.gray500} />
+              {post.comment_count > 0 && (
+                <Text className="text-sm text-gray-500 ml-1">
+                  {post.comment_count}
+                </Text>
+              )}
+            </Pressable>
+
+            {/* Options */}
+            <Pressable onPress={handleOptions}>
+              <Icons.dots size={20} color={colors.hex.gray500} />
+            </Pressable>
+          </View>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      <CommentsSheet
+        ref={commentsSheetRef}
+        postId={post.id}
+        initialCommentCount={post.comment_count}
+        onCommentCountChange={handleCommentCountChange}
+      />
+    </>
   );
 }
