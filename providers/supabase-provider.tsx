@@ -70,9 +70,9 @@ export const SupabaseProvider = ({ children }: SupabaseProviderProps) => {
           schema: "public",
         },
         realtime: {
-          // Disable realtime to avoid websocket connection overhead
+          // Enable realtime for chat
           params: {
-            eventsPerSecond: 2,
+            eventsPerSecond: 10,
           },
         },
       }),

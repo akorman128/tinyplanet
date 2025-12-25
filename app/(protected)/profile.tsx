@@ -238,6 +238,16 @@ export default function ProfileScreen() {
                 </Badge>
               </Pressable>
             )}
+            {!isViewingOwnProfile && userId && (
+              <Pressable
+                onPress={() => router.push(`/chat/${userId}`)}
+                className="mb-4"
+              >
+                <Badge variant="default" size="small">
+                  Message
+                </Badge>
+              </Pressable>
+            )}
           </View>
 
           <VibeDisplay

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Icons } from "./Icons";
 import { colors } from "./colors";
 
-interface InputProps extends TextInputProps {
+interface InputProps extends Omit<TextInputProps, 'onChange'> {
   className?: string;
   label?: string;
   error?: string;
@@ -14,7 +14,7 @@ interface InputProps extends TextInputProps {
   onChange?: (value: string) => void; // Support React Hook Form
 }
 
-export function Input({ className = "", label, error, maxLength, showCharacterCount = false, clearable = false, onClear, ...props }: InputProps) {
+export function Input({ className = "", label, error, maxLength, showCharacterCount = false, clearable = false, onClear, onChange, ...props }: InputProps) {
   const [currentLength, setCurrentLength] = useState(
     props.value?.toString().length || props.defaultValue?.toString().length || 0
   );
@@ -28,7 +28,7 @@ export function Input({ className = "", label, error, maxLength, showCharacterCo
   const handleChangeText = (text: string) => {
     setCurrentLength(text.length);
     props.onChangeText?.(text);
-    props.onChange?.(text); // Support React Hook Form
+    onChange?.(text); // Support React Hook Form
   };
 
   const showClearIcon = clearable && props.value && props.value.toString().length > 0;
