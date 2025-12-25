@@ -254,15 +254,9 @@ import { Button } from "@/design-system";
 
 ### Component Organization
 
-```
-components/           # Reusable feature components
-├── OtpVerificationScreen.tsx
-├── PhoneInputScreen.tsx
-└── VibePhoneForm.tsx
+**components/** - Feature-specific components containing Tiny Planet business logic (posts, vibes, friends) and data fetching hooks.
 
-design-system/       # Base UI components
-└── Button.tsx, Input.tsx, Typography.tsx
-```
+**design-system/** - Generic presentational UI primitives with no business logic that could be reused in any app.
 
 ## Important Architectural Decisions
 

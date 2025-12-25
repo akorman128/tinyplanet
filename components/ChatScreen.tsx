@@ -5,10 +5,10 @@ import {
   ScreenHeader,
   LoadingState,
   ErrorState,
-  MessageBubble,
   ChatInput,
   TypingIndicator,
 } from "@/design-system";
+import { MessageBubble } from "@/components";
 import { useChat } from "@/hooks/useChat";
 import { useProfile } from "@/hooks/useProfile";
 import { useSupabase } from "@/hooks/useSupabase";

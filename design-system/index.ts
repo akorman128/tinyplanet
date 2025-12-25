@@ -26,6 +26,5 @@ export { ErrorState } from "./ErrorState";
 export type { ErrorStateProps } from "./ErrorState";
 export { SocialMediaLinks } from "./SocialMediaLinks";
 export type { SocialMediaLinksProps } from "./SocialMediaLinks";
-export { MessageBubble } from "./MessageBubble";
 export { ChatInput } from "./ChatInput";
 export { TypingIndicator } from "./TypingIndicator";
