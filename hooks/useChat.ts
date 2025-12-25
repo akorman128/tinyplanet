@@ -55,9 +55,9 @@ export const useChat = () => {
 
     if (error) throw error;
 
-    // Reverse for chronological order (oldest first)
+    // Return in reverse chronological order (newest first) for inverted FlatList
     const messagesWithSender = (data as unknown as MessageWithSender[]) || [];
-    return { data: messagesWithSender.reverse() };
+    return { data: messagesWithSender };
   };
 
   // ––– MUTATIONS –––

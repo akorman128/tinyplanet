@@ -1,12 +1,19 @@
 import React from "react";
-import { View, Text, Pressable, Alert, ActionSheetIOS, Platform } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Alert,
+  ActionSheetIOS,
+  Platform,
+} from "react-native";
 import { MessageWithSender } from "@/types/chat";
 import { useRequireProfile } from "@/hooks/useRequireProfile";
 
 interface MessageBubbleProps {
   message: MessageWithSender;
-  onEdit?: (message: MessageWithSender) => void;
-  onDelete?: (messageId: string) => void;
+  onEdit: (message: MessageWithSender) => void;
+  onDelete: (messageId: string) => void;
   showTimestamp?: boolean;
 }
 
@@ -37,19 +44,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            onEdit?.(message);
+            onEdit(message);
           } else if (buttonIndex === 2) {
-            onDelete?.(message.id);
+            onDelete(message.id);
           }
         }
       );
     } else {
       Alert.alert("Message Actions", "What would you like to do?", [
         { text: "Cancel", style: "cancel" },
-        { text: "Edit", onPress: () => onEdit?.(message) },
+        { text: "Edit", onPress: () => onEdit(message) },
         {
           text: "Delete",
-          onPress: () => onDelete?.(message.id),
+          onPress: () => onDelete(message.id),
           style: "destructive",
         },
       ]);
@@ -67,13 +74,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         }`}
       >
         {isDeleted ? (
-          <Text
-            className={`text-sm italic ${
-              isOwnMessage ? "text-white/70" : "text-gray-500"
-            }`}
-          >
-            Message deleted
-          </Text>
+          <></>
         ) : (
           <>
             <Text

@@ -89,14 +89,6 @@ export const VibeDisplay: React.FC<VibeDisplayProps> = ({
             {totalVibeCount && totalVibeCount > 10 ? "10+" : totalVibeCount})
           </Text>
           <View className="flex-row flex-wrap gap-4 justify-center items-center">
-            {!hasUserGivenVibe && recipientId && (
-              <Pressable
-                onPress={handleAddVibe}
-                className="w-8 h-8 rounded-full border-purple-600 border-2 justify-center items-center"
-              >
-                <Icons.plus color={colors.hex.purple600} />
-              </Pressable>
-            )}
             {topVibes.map(({ emoji, count }) => (
               <View key={emoji} className="relative">
                 <Text className="text-[32px]">{emoji}</Text>
@@ -112,6 +104,14 @@ export const VibeDisplay: React.FC<VibeDisplayProps> = ({
                 )}
               </View>
             ))}
+            {!hasUserGivenVibe && recipientId !== profile.id && (
+              <Pressable
+                onPress={handleAddVibe}
+                className="w-8 h-8 rounded-full border-2 justify-center items-center"
+              >
+                <Icons.plus />
+              </Pressable>
+            )}
           </View>
         </Pressable>
       </View>

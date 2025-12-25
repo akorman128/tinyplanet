@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, FlatList, Alert } from "react-native";
+import { View, FlatList, Alert, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import {
   ScreenHeader,
@@ -7,12 +7,15 @@ import {
   ErrorState,
   ChatInput,
   TypingIndicator,
+  colors,
 } from "@/design-system";
 import { MessageBubble } from "@/components";
 import { useChat } from "@/hooks/useChat";
 import { useProfile } from "@/hooks/useProfile";
 import { useSupabase } from "@/hooks/useSupabase";
 import { MessageWithSender } from "@/types/chat";
+
+const PAGE_SIZE = 10;
 
 export default function ChatScreen() {
   const { friendId } = useLocalSearchParams<{ friendId: string }>();
@@ -45,6 +48,11 @@ export default function ChatScreen() {
     avatar_url: string | null;
   } | null>(null);
 
+  // Pagination state
+  const [offset, setOffset] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,6 +62,7 @@ export default function ChatScreen() {
   };
 
   // Helper to determine if timestamp should be shown
+  // Note: messages array is in reverse chronological order (newest first)
   const shouldShowTimestamp = (
     currentMessage: MessageWithSender,
     nextMessage: MessageWithSender | undefined
@@ -64,10 +73,11 @@ export default function ChatScreen() {
     // Show timestamp if next message is from a different sender
     if (currentMessage.sender_id !== nextMessage.sender_id) return true;
 
-    // Show timestamp if next message is more than 1 minute later
+    // Show timestamp if time difference is more than 1 minute
+    // Since array is newest-first, nextMessage is older than currentMessage
     const currentTime = new Date(currentMessage.created_at).getTime();
     const nextTime = new Date(nextMessage.created_at).getTime();
-    const timeDiffInMinutes = (nextTime - currentTime) / (1000 * 60);
+    const timeDiffInMinutes = Math.abs(currentTime - nextTime) / (1000 * 60);
 
     return timeDiffInMinutes >= 1;
   };
@@ -111,11 +121,21 @@ export default function ChatScreen() {
     const loadMessages = async () => {
       if (!friendId || !isLoaded) return;
 
+      // Reset pagination state
+      setOffset(0);
+      setHasMore(true);
+
       setLoading(true);
       setError(null);
       try {
-        const result = await getMessages({ friendId });
+        const result = await getMessages({
+          friendId,
+          limit: PAGE_SIZE,
+          offset: 0,
+        });
         setMessages(result.data);
+        setOffset(PAGE_SIZE);
+        setHasMore(result.data.length === PAGE_SIZE);
       } catch (err) {
         setError("Failed to load messages");
       } finally {
@@ -149,12 +169,13 @@ export default function ChatScreen() {
             // Message already exists (from optimistic update), just return prev
             return prev;
           }
-          return [...prev, messageWithSender];
+          // Prepend to maintain reverse chronological order (newest first)
+          return [messageWithSender, ...prev];
         });
 
-        // Auto-scroll to bottom
+        // Auto-scroll to bottom (in inverted list, scrollToOffset with 0)
         setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
         }, 100);
       });
     });
@@ -211,6 +232,31 @@ export default function ChatScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friendId, isLoaded]);
 
+  const handleLoadMore = useCallback(async () => {
+    // Prevent multiple simultaneous loads
+    if (loadingMore || !hasMore || loading) return;
+
+    setLoadingMore(true);
+    try {
+      const result = await getMessages({
+        friendId: friendId!,
+        limit: PAGE_SIZE,
+        offset,
+      });
+
+      // Append older messages to the end of the array (array is newest-first)
+      setMessages((prev) => [...prev, ...result.data]);
+
+      // Update pagination state
+      setOffset((prev) => prev + PAGE_SIZE);
+      setHasMore(result.data.length === PAGE_SIZE);
+    } catch (err) {
+      console.error("Error loading more messages:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [friendId, offset, loadingMore, hasMore, loading, getMessages]);
+
   const handleSendMessage = useCallback(
     async (text: string) => {
       if (!friendId || !session?.user?.id || !currentUserProfile) return;
@@ -242,12 +288,12 @@ export default function ChatScreen() {
             },
           };
 
-          // Add to UI immediately
-          setMessages((prev) => [...prev, optimisticMessage]);
+          // Add to UI immediately (prepend for reverse chronological order)
+          setMessages((prev) => [optimisticMessage, ...prev]);
 
-          // Scroll to bottom
+          // Scroll to bottom (inverted)
           setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           }, 100);
 
           // Send to database in background
@@ -305,6 +351,15 @@ export default function ChatScreen() {
     setEditingMessage(null);
   }, []);
 
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View className="py-4 items-center">
+        <ActivityIndicator size="small" color={colors.hex.purple600} />
+      </View>
+    );
+  };
+
   if (!friendId) {
     return (
       <>
@@ -360,11 +415,12 @@ export default function ChatScreen() {
             />
           )}
           contentContainerClassName="px-4 pt-4"
+          inverted
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={renderFooter}
           ListFooterComponent={
             isTyping ? <TypingIndicator friendName={friendName} /> : null
-          }
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: false })
           }
         />
 

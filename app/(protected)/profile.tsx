@@ -259,13 +259,6 @@ export default function ProfileScreen() {
           />
 
           <View className="w-full mb-8">
-            {isViewingOwnProfile && displayProfile.phone_number && (
-              <InfoRow
-                label="Phone Number"
-                value={displayProfile.phone_number}
-              />
-            )}
-
             {displayProfile.birthday && (
               <InfoRow
                 label="Birthday"

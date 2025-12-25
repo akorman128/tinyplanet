@@ -98,7 +98,7 @@ export const SocialMediaLinks: React.FC<SocialMediaLinksProps> = ({
         const Icon = Icons[platform.icon];
         return (
           <Pressable key={index} onPress={() => handlePress(platform)}>
-            <Icon size={24} color={colors.hex.gray500} />
+            <Icon size={24} color={colors.hex.purple800} />
           </Pressable>
         );
       })}

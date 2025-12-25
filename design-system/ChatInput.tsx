@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, TextInput, Pressable, KeyboardAvoidingView, Platform, Text } from "react-native";
+import {
+  View,
+  TextInput,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  Text,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icons, colors } from "@/design-system";
 
@@ -16,7 +23,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onTyping,
   editingMessage,
   onCancelEdit,
-  placeholder = "Message...",
+  placeholder = "Yap city population you...",
 }) => {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState("");
@@ -69,7 +76,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
       <View
-        className="border-t border-gray-200 bg-white px-4 py-2"
+        className="border-t border-gray-200 bg-white px-4 py-4"
         style={{ paddingBottom: insets.bottom + 8 }}
       >
         {editingMessage && (
@@ -89,13 +96,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             placeholderTextColor={colors.hex.placeholder}
             multiline
             maxLength={1000}
-            className="flex-1 bg-gray-100 rounded-full px-4 py-2 max-h-24"
+            className="flex-1 bg-gray-100 rounded-lg px-4 py-4 max-h-24"
             style={{ fontSize: 16 }}
           />
           <Pressable
             onPress={handleSend}
             disabled={!text.trim()}
-            className={`w-10 h-10 rounded-full items-center justify-center ${
+            className={`w-12 h-12 rounded-lg items-center justify-center ${
               text.trim() ? "bg-purple-600" : "bg-gray-300"
             }`}
           >
