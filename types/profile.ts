@@ -4,6 +4,10 @@ export interface Profile {
   full_name: string;
   avatar_url: string;
   website: string;
+  instagram?: string;
+  x?: string;
+  letterboxd?: string;
+  beli?: string;
   location: string;
   hometown: string;
   birthday: string;

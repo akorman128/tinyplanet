@@ -13,7 +13,14 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { colors, Input, Button, Body, ScreenHeader } from "@/design-system";
+import {
+  colors,
+  Input,
+  Button,
+  Body,
+  ScreenHeader,
+  TabBar,
+} from "@/design-system";
 import { useProfileStore } from "@/stores/profileStore";
 import { useProfile } from "@/hooks/useProfile";
 
@@ -34,9 +41,15 @@ const editProfileSchema = z.object({
     .trim(),
   website: z.string().trim().optional(),
   avatarUrl: z.string().trim().optional(),
+  instagram: z.string().trim().optional(),
+  x: z.string().trim().optional(),
+  letterboxd: z.string().trim().optional(),
+  beli: z.string().trim().optional(),
 });
 
 type EditProfileForm = z.infer<typeof editProfileSchema>;
+
+type Tab = "account" | "socials";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -44,6 +57,7 @@ export default function EditProfileScreen() {
   const { updateProfile } = useProfile();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("account");
 
   const {
     control,
@@ -60,6 +74,10 @@ export default function EditProfileScreen() {
       hometown: profileState?.hometown || "",
       website: profileState?.website || "",
       avatarUrl: profileState?.avatar_url || "",
+      instagram: profileState?.instagram || "",
+      x: profileState?.x || "",
+      letterboxd: profileState?.letterboxd || "",
+      beli: profileState?.beli || "",
     },
     mode: "all",
   });
@@ -74,6 +92,10 @@ export default function EditProfileScreen() {
           hometown: data.hometown.trim(),
           website: data.website?.trim() || "",
           avatar_url: data.avatarUrl?.trim() || "",
+          instagram: data.instagram?.trim() || "",
+          x: data.x?.trim() || "",
+          letterboxd: data.letterboxd?.trim() || "",
+          beli: data.beli?.trim() || "",
         },
       });
 
@@ -118,12 +140,24 @@ export default function EditProfileScreen() {
     });
   };
 
+  const tabs = [
+    { id: "account", label: "Account" },
+    { id: "socials", label: "Socials" },
+  ];
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 bg-white pt-12">
         {/* Header */}
         <ScreenHeader title="Edit Profile" />
+
+        {/* Tabs */}
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as Tab)}
+        />
 
         {/* Form */}
         <KeyboardAwareScrollView
@@ -134,137 +168,225 @@ export default function EditProfileScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="gap-5">
-            {/* Full Name */}
-            <Controller
-              control={control}
-              name="fullName"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Full Name"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="Enter your full name"
-                  autoCapitalize="words"
-                  autoComplete="name"
-                  textContentType="name"
-                  error={errors.fullName?.message}
-                />
-              )}
-            />
-
-            {/* Birthday */}
-            <Controller
-              control={control}
-              name="birthday"
-              render={({ field: { value, onChange } }) => (
-                <>
-                  <View className="w-full">
-                    <Body className="text-sm font-semibold text-purple-900 mb-2">Birthday</Body>
-                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-                      <View
-                        className={`py-4 px-4 rounded-xl border-2 bg-white ${
-                          errors.birthday ? "border-red-500" : "border-gray-300"
-                        }`}
-                      >
-                        <Text
-                          className={`text-base ${
-                            value ? "text-purple-900" : "text-gray-400"
-                          }`}
-                        >
-                          {value ? formatDate(value) : "Select your birthday"}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                    {errors.birthday && (
-                      <Text className="text-sm text-red-500 mt-1">
-                        {errors.birthday.message}
-                      </Text>
-                    )}
-                  </View>
-
-                  {showDatePicker && (
-                    <View className="bg-white rounded-xl p-4 gap-4">
-                      <DateTimePicker
-                        value={value || new Date()}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        onChange={(event, date) =>
-                          handleDateChange(onChange, event, date)
-                        }
-                        maximumDate={new Date()}
-                        textColor="#000000"
-                      />
-                      {Platform.OS === "ios" && (
-                        <Button
-                          variant="secondary"
-                          onPress={() => setShowDatePicker(false)}
-                        >
-                          Save
-                        </Button>
-                      )}
-                    </View>
+            {/* Account Tab */}
+            {activeTab === "account" && (
+              <>
+                {/* Full Name */}
+                <Controller
+                  control={control}
+                  name="fullName"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Full Name"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="Enter your full name"
+                      autoCapitalize="words"
+                      autoComplete="name"
+                      textContentType="name"
+                      error={errors.fullName?.message}
+                    />
                   )}
-                </>
-              )}
-            />
-
-            {/* Hometown */}
-            <Controller
-              control={control}
-              name="hometown"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Hometown"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="Where are you from?"
-                  autoCapitalize="words"
-                  error={errors.hometown?.message}
                 />
-              )}
-            />
 
-            {/* Website */}
-            <Controller
-              control={control}
-              name="website"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Website (Optional)"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="https://example.com"
-                  autoCapitalize="none"
-                  autoComplete="url"
-                  textContentType="URL"
-                  keyboardType="url"
-                  error={errors.website?.message}
-                />
-              )}
-            />
+                {/* Birthday */}
+                <Controller
+                  control={control}
+                  name="birthday"
+                  render={({ field: { value, onChange } }) => (
+                    <>
+                      <View className="w-full">
+                        <Body className="text-sm font-semibold text-purple-900 mb-2">
+                          Birthday
+                        </Body>
+                        <TouchableOpacity
+                          onPress={() => setShowDatePicker(true)}
+                        >
+                          <View
+                            className={`py-4 px-4 rounded-xl border-2 bg-white ${
+                              errors.birthday
+                                ? "border-red-500"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            <Text
+                              className={`text-base ${
+                                value ? "text-purple-900" : "text-gray-400"
+                              }`}
+                            >
+                              {value
+                                ? formatDate(value)
+                                : "Select your birthday"}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        {errors.birthday && (
+                          <Text className="text-sm text-red-500 mt-1">
+                            {errors.birthday.message}
+                          </Text>
+                        )}
+                      </View>
 
-            {/* Avatar URL */}
-            <Controller
-              control={control}
-              name="avatarUrl"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Avatar URL (Optional)"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="https://example.com/avatar.jpg"
-                  autoCapitalize="none"
-                  autoComplete="url"
-                  textContentType="URL"
-                  keyboardType="url"
-                  error={errors.avatarUrl?.message}
+                      {showDatePicker && (
+                        <View className="bg-white rounded-xl p-4 gap-4">
+                          <DateTimePicker
+                            value={value || new Date()}
+                            mode="date"
+                            display={
+                              Platform.OS === "ios" ? "spinner" : "default"
+                            }
+                            onChange={(event, date) =>
+                              handleDateChange(onChange, event, date)
+                            }
+                            maximumDate={new Date()}
+                            textColor="#000000"
+                          />
+                          {Platform.OS === "ios" && (
+                            <Button
+                              variant="secondary"
+                              onPress={() => setShowDatePicker(false)}
+                            >
+                              Save
+                            </Button>
+                          )}
+                        </View>
+                      )}
+                    </>
+                  )}
                 />
-              )}
-            />
+
+                {/* Hometown */}
+                <Controller
+                  control={control}
+                  name="hometown"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Hometown"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="Where are you from?"
+                      autoCapitalize="words"
+                      error={errors.hometown?.message}
+                    />
+                  )}
+                />
+
+                {/* Avatar URL */}
+                <Controller
+                  control={control}
+                  name="avatarUrl"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Avatar URL"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="https://example.com/avatar.jpg"
+                      autoCapitalize="none"
+                      autoComplete="url"
+                      textContentType="URL"
+                      keyboardType="url"
+                      error={errors.avatarUrl?.message}
+                    />
+                  )}
+                />
+              </>
+            )}
+
+            {/* Socials Tab */}
+            {activeTab === "socials" && (
+              <>
+                {/* Website */}
+                <Controller
+                  control={control}
+                  name="website"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Website"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="https://example.com"
+                      autoCapitalize="none"
+                      autoComplete="url"
+                      textContentType="URL"
+                      keyboardType="url"
+                      error={errors.website?.message}
+                    />
+                  )}
+                />
+
+                {/* Instagram */}
+                <Controller
+                  control={control}
+                  name="instagram"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Instagram"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="username"
+                      autoCapitalize="none"
+                      error={errors.instagram?.message}
+                    />
+                  )}
+                />
+
+                {/* X */}
+                <Controller
+                  control={control}
+                  name="x"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="X "
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="username"
+                      autoCapitalize="none"
+                      error={errors.x?.message}
+                    />
+                  )}
+                />
+
+                {/* Letterboxd */}
+                <Controller
+                  control={control}
+                  name="letterboxd"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Letterboxd"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="username"
+                      autoCapitalize="none"
+                      error={errors.letterboxd?.message}
+                    />
+                  )}
+                />
+
+                {/* Beli */}
+                <Controller
+                  control={control}
+                  name="beli"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <Input
+                      label="Beli"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      placeholder="username"
+                      autoCapitalize="none"
+                      error={errors.beli?.message}
+                    />
+                  )}
+                />
+              </>
+            )}
 
             {/* Save Button */}
             <View className="mt-3">

@@ -94,7 +94,7 @@ export const VibeDisplay: React.FC<VibeDisplayProps> = ({
                 onPress={handleAddVibe}
                 className="w-8 h-8 rounded-full border-purple-600 border-2 justify-center items-center"
               >
-                <Icons.plus className="bg-purple-600" />
+                <Icons.plus color={colors.hex.purple600} />
               </Pressable>
             )}
             {topVibes.map(({ emoji, count }) => (
@@ -103,7 +103,7 @@ export const VibeDisplay: React.FC<VibeDisplayProps> = ({
                 {count > 1 && (
                   <View
                     className="absolute -top-1 -right-1 rounded-full min-w-[20px] h-5 justify-center items-center px-1.5"
-                    style={{ backgroundColor: colors.hex.purple600 }}
+                    style={{ backgroundColor: colors.primary.DEFAULT }}
                   >
                     <Text className="text-xs font-bold text-white">
                       {count}

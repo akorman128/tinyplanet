@@ -12,6 +12,7 @@ import {
   Heading,
   Icons,
   colors,
+  SocialMediaLinks,
 } from "@/design-system";
 import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { useProfile } from "@/hooks/useProfile";
@@ -185,7 +186,7 @@ export default function ProfileScreen() {
       <View className="flex-1 bg-white pt-8">
         {/* Header */}
         <ScreenHeader
-          title={isViewingOwnProfile ? "My Profile" : "Profile"}
+          title={"Profile"}
           showBackButton={true}
           rightComponent={
             isViewingOwnProfile ? (
@@ -196,12 +197,10 @@ export default function ProfileScreen() {
           }
         />
 
-        {/* Content */}
         <ScrollView
           className="flex-1"
           contentContainerClassName="px-6 pt-8 pb-8 items-center"
         >
-          {/* Avatar */}
           <View className="mb-4">
             <Avatar
               fullName={displayProfile.full_name}
@@ -210,12 +209,19 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* Full Name with Friend Status Icon */}
           <View className="flex-row items-center justify-center mb-2">
             <Heading className="text-purple-900 text-center">
               {displayProfile.full_name}
             </Heading>
           </View>
+
+          <SocialMediaLinks
+            website={displayProfile.website}
+            instagram={displayProfile.instagram}
+            x={displayProfile.x}
+            letterboxd={displayProfile.letterboxd}
+            beli={displayProfile.beli}
+          />
 
           <View className="flex-row items-center justify-center gap-2 mb-2">
             {!isViewingOwnProfile && userId && (
@@ -224,7 +230,7 @@ export default function ProfileScreen() {
                 onError={(errorMessage) => setError(errorMessage)}
               />
             )}
-            {/* Mutual Friends Badge - only show for other users' profiles */}
+
             {!isViewingOwnProfile && mutualCount > 0 && (
               <Pressable onPress={handleMutualsPress} className="mb-4">
                 <Badge variant="secondary" size="small">
@@ -234,7 +240,6 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {/* Vibes */}
           <VibeDisplay
             topVibes={topVibes}
             totalVibeCount={totalVibeCount}
@@ -243,9 +248,7 @@ export default function ProfileScreen() {
             onVibeCreated={fetchVibes}
           />
 
-          {/* Info Sections */}
           <View className="w-full mb-8">
-            {/* Phone Number - only show for own profile */}
             {isViewingOwnProfile && displayProfile.phone_number && (
               <InfoRow
                 label="Phone Number"
@@ -253,7 +256,6 @@ export default function ProfileScreen() {
               />
             )}
 
-            {/* Birthday */}
             {displayProfile.birthday && (
               <InfoRow
                 label="Birthday"
@@ -261,12 +263,10 @@ export default function ProfileScreen() {
               />
             )}
 
-            {/* Hometown */}
             {displayProfile.hometown && (
               <InfoRow label="Hometown" value={displayProfile.hometown} />
             )}
 
-            {/* Current Location */}
             {(displayProfile.latitude !== undefined ||
               displayProfile.longitude !== undefined) && (
               <InfoRow
@@ -274,11 +274,6 @@ export default function ProfileScreen() {
                 value={humanReadableLocation || "Unknown location"}
                 loading={geocoding}
               />
-            )}
-
-            {/* Website */}
-            {displayProfile.website && (
-              <InfoRow label="Website" value={displayProfile.website} />
             )}
           </View>
         </ScrollView>

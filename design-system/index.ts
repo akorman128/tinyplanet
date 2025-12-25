@@ -24,3 +24,5 @@ export { LoadingState } from "./LoadingState";
 export type { LoadingStateProps } from "./LoadingState";
 export { ErrorState } from "./ErrorState";
 export type { ErrorStateProps } from "./ErrorState";
+export { SocialMediaLinks } from "./SocialMediaLinks";
+export type { SocialMediaLinksProps } from "./SocialMediaLinks";
