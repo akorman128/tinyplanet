@@ -11,10 +11,12 @@ import {
 } from "@/design-system";
 import { useChat } from "@/hooks/useChat";
 import { useProfile } from "@/hooks/useProfile";
+import { useSupabase } from "@/hooks/useSupabase";
 import { MessageWithSender } from "@/types/chat";
 
 export default function ChatScreen() {
   const { friendId } = useLocalSearchParams<{ friendId: string }>();
+  const { session } = useSupabase();
   const { getProfile } = useProfile();
   const {
     isLoaded,
@@ -37,9 +39,57 @@ export default function ChatScreen() {
     text: string;
   } | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Helper to order user IDs consistently (same as useChat)
+  const orderUserIds = (userId1: string, userId2: string): [string, string] => {
+    return userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+  };
+
+  // Helper to determine if timestamp should be shown
+  const shouldShowTimestamp = (
+    currentMessage: MessageWithSender,
+    nextMessage: MessageWithSender | undefined
+  ): boolean => {
+    // Always show timestamp if it's the last message or if there's no next message
+    if (!nextMessage) return true;
+
+    // Show timestamp if next message is from a different sender
+    if (currentMessage.sender_id !== nextMessage.sender_id) return true;
+
+    // Show timestamp if next message is more than 1 minute later
+    const currentTime = new Date(currentMessage.created_at).getTime();
+    const nextTime = new Date(nextMessage.created_at).getTime();
+    const timeDiffInMinutes = (nextTime - currentTime) / (1000 * 60);
+
+    return timeDiffInMinutes >= 1;
+  };
+
+  // Fetch current user profile for optimistic updates
+  useEffect(() => {
+    const fetchCurrentUserProfile = async () => {
+      if (!session?.user?.id) return;
+      try {
+        const profile = await getProfile({ userId: session.user.id });
+        setCurrentUserProfile({
+          id: profile.id,
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+        });
+      } catch (err) {
+        console.error("Failed to fetch current user profile:", err);
+      }
+    };
+    fetchCurrentUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
   // Fetch friend profile
   useEffect(() => {
@@ -53,7 +103,8 @@ export default function ChatScreen() {
       }
     };
     fetchFriendProfile();
-  }, [friendId, getProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId]);
 
   // Load initial messages
   useEffect(() => {
@@ -72,7 +123,8 @@ export default function ChatScreen() {
       }
     };
     loadMessages();
-  }, [friendId, isLoaded, getMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId, isLoaded]);
 
   // Subscribe to new messages
   useEffect(() => {
@@ -89,7 +141,17 @@ export default function ChatScreen() {
             avatar_url: profile.avatar_url,
           },
         };
-        setMessages((prev) => [...prev, messageWithSender]);
+
+        // Only add if not already in messages (prevents duplicates from optimistic updates)
+        setMessages((prev) => {
+          const exists = prev.some((msg) => msg.id === newMessage.id);
+          if (exists) {
+            // Message already exists (from optimistic update), just return prev
+            return prev;
+          }
+          return [...prev, messageWithSender];
+        });
+
         // Auto-scroll to bottom
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
@@ -98,24 +160,27 @@ export default function ChatScreen() {
     });
 
     return unsubscribe;
-  }, [friendId, isLoaded, subscribeToMessages, getProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId, isLoaded]);
 
   // Subscribe to message updates (edits/deletes)
   useEffect(() => {
     if (!friendId || !isLoaded) return;
 
-    const unsubscribe = subscribeToMessageUpdates(friendId, (updatedMessage) => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === updatedMessage.id
-            ? { ...msg, ...updatedMessage }
-            : msg
-        )
-      );
-    });
+    const unsubscribe = subscribeToMessageUpdates(
+      friendId,
+      (updatedMessage) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+          )
+        );
+      }
+    );
 
     return unsubscribe;
-  }, [friendId, isLoaded, subscribeToMessageUpdates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId, isLoaded]);
 
   // Subscribe to typing indicators
   useEffect(() => {
@@ -143,11 +208,12 @@ export default function ChatScreen() {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [friendId, isLoaded, subscribeToTypingIndicators]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId, isLoaded]);
 
   const handleSendMessage = useCallback(
     async (text: string) => {
-      if (!friendId) return;
+      if (!friendId || !session?.user?.id || !currentUserProfile) return;
 
       try {
         if (editingMessage) {
@@ -155,14 +221,64 @@ export default function ChatScreen() {
           await updateMessage({ messageId: editingMessage.id, text });
           setEditingMessage(null);
         } else {
-          // Send new message
-          await sendMessage({ friendId, text });
+          // Optimistic update: add message immediately to local state
+          const tempId = `temp-${Date.now()}`; // Temporary ID
+          const [user_a, user_b] = orderUserIds(session.user.id, friendId);
+
+          const optimisticMessage: MessageWithSender = {
+            id: tempId,
+            user_id_a: user_a,
+            user_id_b: user_b,
+            sender_id: session.user.id,
+            text: text.trim(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            edited_at: null,
+            deleted_at: null,
+            sender: {
+              id: currentUserProfile.id,
+              full_name: currentUserProfile.full_name,
+              avatar_url: currentUserProfile.avatar_url,
+            },
+          };
+
+          // Add to UI immediately
+          setMessages((prev) => [...prev, optimisticMessage]);
+
+          // Scroll to bottom
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+
+          // Send to database in background
+          const result = await sendMessage({ friendId, text });
+
+          // Replace temp message with real one (has real UUID from DB)
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === tempId
+                ? { ...optimisticMessage, id: result.data.id }
+                : msg
+            )
+          );
         }
       } catch (err) {
         Alert.alert("Error", "Failed to send message");
+        // Remove optimistic message on error
+        setMessages((prev) =>
+          prev.filter((msg) => !msg.id.startsWith("temp-"))
+        );
       }
     },
-    [friendId, editingMessage, sendMessage, updateMessage]
+    [
+      friendId,
+      session?.user?.id,
+      currentUserProfile,
+      editingMessage,
+      sendMessage,
+      updateMessage,
+      orderUserIds,
+    ]
   );
 
   const handleTyping = useCallback(() => {
@@ -206,7 +322,7 @@ export default function ChatScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-white pt-12">
-          <ScreenHeader title={friendName || "Chat"} showBackButton={true} />
+          <ScreenHeader title={friendName} showBackButton={true} />
           <LoadingState />
         </View>
       </>
@@ -218,7 +334,7 @@ export default function ChatScreen() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <View className="flex-1 bg-white pt-12">
-          <ScreenHeader title={friendName || "Chat"} showBackButton={true} />
+          <ScreenHeader title={friendName} showBackButton={true} />
           <ErrorState message={error} />
         </View>
       </>
@@ -235,11 +351,12 @@ export default function ChatScreen() {
           ref={flatListRef}
           data={messages}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <MessageBubble
               message={item}
               onEdit={handleEditMessage}
               onDelete={handleDeleteMessage}
+              showTimestamp={shouldShowTimestamp(item, messages[index + 1])}
             />
           )}
           contentContainerClassName="px-4 pt-4"

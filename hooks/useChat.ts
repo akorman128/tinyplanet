@@ -33,98 +33,92 @@ export const useChat = () => {
 
   // ––– QUERIES –––
 
-  const getMessages = useCallback(
-    async (input: GetMessagesInput): Promise<GetMessagesOutput> => {
-      const { friendId, limit = 10, offset = 0 } = input;
-      const [user_a, user_b] = orderUserIds(profile.id, friendId);
+  const getMessages = async (
+    input: GetMessagesInput
+  ): Promise<GetMessagesOutput> => {
+    const { friendId, limit = 10, offset = 0 } = input;
+    const [user_a, user_b] = orderUserIds(profile.id, friendId);
 
-      const { data, error } = await supabase
-        .from("messages")
-        .select(
-          `
+    const { data, error } = await supabase
+      .from("messages")
+      .select(
+        `
         *,
         sender:profiles!messages_sender_id_fkey(id, full_name, avatar_url)
       `
-        )
-        .eq("user_id_a", user_a)
-        .eq("user_id_b", user_b)
-        .is("deleted_at", null) // Only fetch non-deleted messages
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
+      )
+      .eq("user_id_a", user_a)
+      .eq("user_id_b", user_b)
+      .is("deleted_at", null) // Only fetch non-deleted messages
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Reverse for chronological order (oldest first)
-      const messagesWithSender = (data as unknown as MessageWithSender[]) || [];
-      return { data: messagesWithSender.reverse() };
-    },
-    [supabase, profile.id]
-  );
+    // Reverse for chronological order (oldest first)
+    const messagesWithSender = (data as unknown as MessageWithSender[]) || [];
+    return { data: messagesWithSender.reverse() };
+  };
 
   // ––– MUTATIONS –––
 
-  const sendMessage = useCallback(
-    async (input: SendMessageInput): Promise<SendMessageOutput> => {
-      const { friendId, text } = input;
-      const [user_a, user_b] = orderUserIds(profile.id, friendId);
+  const sendMessage = async (
+    input: SendMessageInput
+  ): Promise<SendMessageOutput> => {
+    const { friendId, text } = input;
+    const [user_a, user_b] = orderUserIds(profile.id, friendId);
 
-      const { data, error } = await supabase
-        .from("messages")
-        .insert({
-          user_id_a: user_a,
-          user_id_b: user_b,
-          sender_id: profile.id,
-          text: text.trim(),
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        user_id_a: user_a,
+        user_id_b: user_b,
+        sender_id: profile.id,
+        text: text.trim(),
+      })
+      .select()
+      .single();
 
-      if (error) throw error;
-      return { data };
-    },
-    [supabase, profile.id]
-  );
+    if (error) throw error;
+    return { data };
+  };
 
-  const updateMessage = useCallback(
-    async (input: UpdateMessageInput): Promise<UpdateMessageOutput> => {
-      const { messageId, text } = input;
+  const updateMessage = async (
+    input: UpdateMessageInput
+  ): Promise<UpdateMessageOutput> => {
+    const { messageId, text } = input;
 
-      const { data, error } = await supabase
-        .from("messages")
-        .update({
-          text: text.trim(),
-          edited_at: new Date().toISOString(),
-        })
-        .eq("id", messageId)
-        .eq("sender_id", profile.id) // Only sender can edit
-        .is("deleted_at", null) // Can't edit deleted messages
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from("messages")
+      .update({
+        text: text.trim(),
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", messageId)
+      .eq("sender_id", profile.id) // Only sender can edit
+      .is("deleted_at", null) // Can't edit deleted messages
+      .select()
+      .single();
 
-      if (error) throw error;
-      return { data };
-    },
-    [supabase, profile.id]
-  );
+    if (error) throw error;
+    return { data };
+  };
 
-  const deleteMessage = useCallback(
-    async (input: DeleteMessageInput): Promise<void> => {
-      const { messageId } = input;
+  const deleteMessage = async (input: DeleteMessageInput): Promise<void> => {
+    const { messageId } = input;
 
-      // Soft delete: set deleted_at timestamp
-      const { error } = await supabase
-        .from("messages")
-        .update({
-          deleted_at: new Date().toISOString(),
-        })
-        .eq("id", messageId)
-        .eq("sender_id", profile.id) // Only sender can delete
-        .is("deleted_at", null); // Can't delete already deleted messages
+    // Soft delete: set deleted_at timestamp
+    const { error } = await supabase
+      .from("messages")
+      .update({
+        deleted_at: new Date().toISOString(),
+      })
+      .eq("id", messageId)
+      .eq("sender_id", profile.id) // Only sender can delete
+      .is("deleted_at", null); // Can't delete already deleted messages
 
-      if (error) throw error;
-    },
-    [supabase, profile.id]
-  );
+    if (error) throw error;
+  };
 
   // ––– REALTIME SUBSCRIPTIONS –––
 

@@ -7,12 +7,14 @@ interface MessageBubbleProps {
   message: MessageWithSender;
   onEdit?: (message: MessageWithSender) => void;
   onDelete?: (messageId: string) => void;
+  showTimestamp?: boolean;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   onEdit,
   onDelete,
+  showTimestamp = true,
 }) => {
   const profile = useRequireProfile();
   const isOwnMessage = message.sender_id === profile.id;
@@ -57,7 +59,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <Pressable
       onLongPress={handleLongPress}
-      className={`mb-3 ${isOwnMessage ? "items-end" : "items-start"}`}
+      className={`${showTimestamp ? "mb-3" : "mb-1"} ${isOwnMessage ? "items-end" : "items-start"}`}
     >
       <View
         className={`max-w-[75%] rounded-2xl px-4 py-2 ${
@@ -93,12 +95,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </>
         )}
       </View>
-      <Text className="text-xs text-gray-500 mt-1 px-1">
-        {new Date(message.created_at).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text>
+      {showTimestamp && (
+        <Text className="text-xs text-gray-500 mt-1 px-1">
+          {new Date(message.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
+      )}
     </Pressable>
   );
 };
