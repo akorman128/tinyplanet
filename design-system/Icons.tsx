@@ -4135,4 +4135,22 @@ export const Icons = {
       <Circle cx="16.5" cy="12" r="3" fill={color} opacity="0.6" />
     </Svg>
   ),
+  bookmark: (props: IconProps) => (
+    <Svg
+      width={props.size || 24}
+      height={props.size || 24}
+      viewBox="0 0 24 24"
+      fill="none"
+      {...props}
+    >
+      <Path
+        d="M17 3H7a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2z"
+        stroke={props.color || "currentColor"}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill={props.fill || "none"}
+      />
+    </Svg>
+  ),
 };

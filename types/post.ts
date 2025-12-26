@@ -20,6 +20,7 @@ export interface PostWithAuthor extends Post {
   like_count: number;
   comment_count: number;
   liked_by_user: boolean;
+  saved_by_user: boolean;
 }
 
 export interface CreatePostInput {

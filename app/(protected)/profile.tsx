@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView } from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import {
   Avatar,
@@ -257,6 +257,22 @@ export default function ProfileScreen() {
             recipientId={!isViewingOwnProfile ? displayProfile.id : undefined}
             onVibeCreated={fetchVibes}
           />
+
+          {/* Saved Posts Link - Only show on own profile */}
+          {isViewingOwnProfile && (
+            <Pressable
+              onPress={() => router.push("/saved-posts")}
+              className="w-full mb-6 px-4 py-3 bg-purple-50 rounded-lg flex-row items-center justify-between"
+            >
+              <View className="flex-row items-center gap-3">
+                <Icons.bookmark size={20} color={colors.hex.purple600} />
+                <Text className="text-base font-semibold text-purple-900">
+                  Saved Posts
+                </Text>
+              </View>
+              <Icons.chevronRight size={20} color={colors.hex.purple600} />
+            </Pressable>
+          )}
 
           <View className="w-full mb-8">
             {displayProfile.birthday && (

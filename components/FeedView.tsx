@@ -92,6 +92,15 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
     []
   );
 
+  const handleSavePost = useCallback(
+    (postId: string, updates: Partial<PostWithAuthor>) => {
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, ...updates } : p))
+      );
+    },
+    []
+  );
+
   const handlePostDelete = useCallback((postId: string) => {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   }, []);
@@ -154,6 +163,7 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
           <PostCard
             post={item}
             onLike={handleLikePost}
+            onSave={handleSavePost}
             onDelete={handlePostDelete}
             onOpenComments={handleOpenComments}
             onEditPost={onEditPost}

@@ -119,8 +119,6 @@ export default function ChatScreen() {
   // Load initial messages
   useEffect(() => {
     const loadMessages = async () => {
-      if (!friendId || !isLoaded) return;
-
       // Reset pagination state
       setOffset(0);
       setHasMore(true);
@@ -186,8 +184,6 @@ export default function ChatScreen() {
 
   // Subscribe to message updates (edits/deletes)
   useEffect(() => {
-    if (!friendId || !isLoaded) return;
-
     const unsubscribe = subscribeToMessageUpdates(
       friendId,
       (updatedMessage) => {
@@ -205,8 +201,6 @@ export default function ChatScreen() {
 
   // Subscribe to typing indicators
   useEffect(() => {
-    if (!friendId || !isLoaded) return;
-
     const unsubscribe = subscribeToTypingIndicators(friendId, (event) => {
       if (event.userId === friendId) {
         setIsTyping(true);

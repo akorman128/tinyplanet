@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Avatar, Icons, colors } from "@/design-system";
 import { PostWithAuthor, PostVisibility } from "@/types/post";
 import { useLikes } from "@/hooks/useLikes";
+import { useSavedPosts } from "@/hooks/useSavedPosts";
 import { usePosts } from "@/hooks/usePosts";
 import { useSupabase } from "@/hooks/useSupabase";
 import { formatTimeAgo } from "@/utils";
@@ -17,6 +18,7 @@ interface EditPost {
 interface PostCardProps {
   post: PostWithAuthor;
   onLike: (postId: string, updates: Partial<PostWithAuthor>) => void;
+  onSave: (postId: string, updates: Partial<PostWithAuthor>) => void;
   onDelete: (postId: string) => void;
   onOpenComments: (postId: string, commentCount: number) => void;
   onEditPost?: (post: EditPost) => void;
@@ -25,6 +27,7 @@ interface PostCardProps {
 export function PostCard({
   post,
   onLike,
+  onSave,
   onDelete,
   onOpenComments,
   onEditPost,
@@ -32,8 +35,10 @@ export function PostCard({
   const router = useRouter();
   const { session } = useSupabase();
   const { likePost, unlikePost } = useLikes();
+  const { savePost, unsavePost } = useSavedPosts();
   const { deletePost } = usePosts();
   const [isLiking, setIsLiking] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleLikeToggle = async () => {
     if (isLiking) return;
@@ -57,6 +62,34 @@ export function PostCard({
       console.error("Error toggling like:", err);
     } finally {
       setIsLiking(false);
+    }
+  };
+
+  const handleSaveToggle = async () => {
+    if (isSaving) return;
+
+    setIsSaving(true);
+    const wasSaved = post.saved_by_user;
+
+    // Optimistic update
+    onSave(post.id, {
+      saved_by_user: !wasSaved,
+    });
+
+    try {
+      if (wasSaved) {
+        await unsavePost(post.id);
+      } else {
+        await savePost(post.id);
+      }
+    } catch (err) {
+      console.error("Error toggling save:", err);
+      // Revert optimistic update on error
+      onSave(post.id, {
+        saved_by_user: wasSaved,
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -198,6 +231,21 @@ export function PostCard({
                 {post.comment_count}
               </Text>
             )}
+          </Pressable>
+
+          {/* Save/Bookmark */}
+          <Pressable
+            className="flex-row items-center"
+            onPress={handleSaveToggle}
+            disabled={isSaving}
+          >
+            <Icons.bookmark
+              size={20}
+              color={
+                post.saved_by_user ? colors.hex.purple600 : colors.hex.gray500
+              }
+              fill={post.saved_by_user ? colors.hex.purple600 : "none"}
+            />
           </Pressable>
 
           {/* Options */}
