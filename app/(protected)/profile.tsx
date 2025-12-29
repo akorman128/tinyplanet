@@ -17,6 +17,7 @@ import {
 import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { useProfile } from "@/hooks/useProfile";
 import { useVibe } from "@/hooks/useVibe";
+import { useSupabase } from "@/hooks/useSupabase";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { formatBirthday } from "@/utils";
 import { Profile } from "@/types/profile";
@@ -29,6 +30,7 @@ export default function ProfileScreen() {
   const profile = useRequireProfile();
   const { getProfile } = useProfile();
   const { getTopVibes, isLoaded: vibeIsLoaded } = useVibe();
+  const { signOut } = useSupabase();
 
   const [otherUserProfile, setOtherUserProfile] = useState<Profile | null>(
     null
@@ -258,23 +260,28 @@ export default function ProfileScreen() {
             onVibeCreated={fetchVibes}
           />
 
-          {/* Saved Posts Link - Only show on own profile */}
-          {isViewingOwnProfile && (
+          {/* Posts Link */}
+          {displayProfile && (
             <Pressable
-              onPress={() => router.push("/saved-posts")}
-              className="w-full mb-6 px-4 py-3 bg-purple-50 rounded-lg flex-row items-center justify-between"
+              onPress={() =>
+                router.push({
+                  pathname: "/user-posts",
+                  params: { userId: displayProfile.id },
+                })
+              }
+              className="w-full mb-4 px-4 py-3 bg-purple-50 rounded-lg flex-row items-center justify-between"
             >
               <View className="flex-row items-center gap-3">
-                <Icons.bookmark size={20} color={colors.hex.purple600} />
+                <Icons.posts size={32} color={colors.hex.purple600} />
                 <Text className="text-base font-semibold text-purple-900">
-                  Saved Posts
+                  Posts
                 </Text>
               </View>
               <Icons.chevronRight size={20} color={colors.hex.purple600} />
             </Pressable>
           )}
 
-          <View className="w-full mb-8">
+          <View className="w-full mb-4">
             {displayProfile.birthday && (
               <InfoRow
                 label="Birthday"
@@ -295,6 +302,21 @@ export default function ProfileScreen() {
               />
             )}
           </View>
+
+          {isViewingOwnProfile && (
+            <View className="w-full">
+              <Button
+                size="md"
+                variant="secondary"
+                onPress={async () => {
+                  await signOut();
+                  router.replace("/welcome");
+                }}
+              >
+                Sign Out
+              </Button>
+            </View>
+          )}
         </ScrollView>
       </View>
     </>
