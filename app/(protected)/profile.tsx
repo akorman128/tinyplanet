@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import { View, Text, Pressable, ScrollView, Linking } from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
 import {
   Avatar,
@@ -305,6 +305,15 @@ export default function ProfileScreen() {
 
           {isViewingOwnProfile && (
             <View className="w-full">
+              <Button
+                size="md"
+                variant="secondary"
+                onPress={() => {
+                  Linking.openURL("https://app.youform.com/forms/werjra1a");
+                }}
+              >
+                Feedback
+              </Button>
               <Button
                 size="md"
                 variant="secondary"
