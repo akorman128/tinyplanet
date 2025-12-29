@@ -35,6 +35,16 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
 
+  // Store getFeed in ref to prevent loadFeed from recreating
+  const getFeedRef = useRef(getFeed);
+  useEffect(() => {
+    getFeedRef.current = getFeed;
+  }, [getFeed]);
+
+  // Atomic guard to prevent concurrent initial fetches
+  const hasLoadedRef = useRef(false);
+  const isLoadingRef = useRef(false);
+
   // CommentsSheet state
   const commentsSheetRef = useRef<BottomSheet>(null);
   const [activePost, setActivePost] = useState<{
@@ -43,9 +53,17 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
   } | null>(null);
 
   const loadFeed = useCallback(async () => {
+    // Atomic guard: prevent concurrent initial fetches
+    if (isLoadingRef.current) {
+      return;
+    }
+
+    isLoadingRef.current = true;
+    hasLoadedRef.current = true;
+
     try {
       setError(null);
-      const result = await getFeed({ limit: PAGE_SIZE, offset: 0 });
+      const result = await getFeedRef.current({ limit: PAGE_SIZE, offset: 0 });
       setPosts(result.data);
       setOffset(PAGE_SIZE);
       setHasMore(result.data.length === PAGE_SIZE);
@@ -54,8 +72,9 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
       setError("Failed to load feed");
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
-  }, [getFeed]);
+  }, []);
 
   useEffect(() => {
     loadFeed();
@@ -72,7 +91,7 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
 
     setLoadingMore(true);
     try {
-      const result = await getFeed({ limit: PAGE_SIZE, offset });
+      const result = await getFeedRef.current({ limit: PAGE_SIZE, offset });
       setPosts((prev) => [...prev, ...result.data]);
       setOffset((prev) => prev + PAGE_SIZE);
       setHasMore(result.data.length === PAGE_SIZE);
@@ -81,7 +100,7 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
     } finally {
       setLoadingMore(false);
     }
-  }, [getFeed, offset, loadingMore, hasMore, refreshing]);
+  }, [offset, loadingMore, hasMore, refreshing]);
 
   const handleLikePost = useCallback(
     (postId: string, updates: Partial<PostWithAuthor>) => {
