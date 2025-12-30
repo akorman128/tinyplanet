@@ -8,9 +8,15 @@ import {
 import BottomSheet from "@gorhom/bottom-sheet";
 import { useFeed } from "@/hooks/useFeed";
 import { PostCard } from "./PostCard";
+import { TravelPlanCard } from "./TravelPlanCard";
 import { CommentsSheet } from "./CommentsSheet";
 import { EmptyState, LoadingState, ErrorState, colors } from "@/design-system";
 import { PostWithAuthor, PostVisibility } from "@/types/post";
+
+// Helper function to detect travel plan posts
+const isTravelPlanPost = (post: PostWithAuthor): boolean => {
+  return post.text.startsWith("🚀 Traveling to");
+};
 
 interface EditPost {
   id: string;
@@ -178,16 +184,26 @@ export function FeedView({ onCommentsSheetChange, onEditPost }: FeedViewProps) {
     <>
       <FlatList
         data={posts}
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            onLike={handleLikePost}
-            onSave={handleSavePost}
-            onDelete={handlePostDelete}
-            onOpenComments={handleOpenComments}
-            onEditPost={onEditPost}
-          />
-        )}
+        renderItem={({ item }) =>
+          isTravelPlanPost(item) ? (
+            <TravelPlanCard
+              post={item}
+              onLike={handleLikePost}
+              onSave={handleSavePost}
+              onDelete={handlePostDelete}
+              onOpenComments={handleOpenComments}
+            />
+          ) : (
+            <PostCard
+              post={item}
+              onLike={handleLikePost}
+              onSave={handleSavePost}
+              onDelete={handlePostDelete}
+              onOpenComments={handleOpenComments}
+              onEditPost={onEditPost}
+            />
+          )
+        }
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl

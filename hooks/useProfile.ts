@@ -72,7 +72,7 @@ export const useProfile = () => {
           birthday,
           location: location
             ? `POINT(${location.longitude} ${location.latitude})`
-            : "",
+            : null,
           invited_by,
         })
         .select()

@@ -1,6 +1,20 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { View, Text, Pressable, ScrollView, Linking } from "react-native";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  Linking,
+  Alert,
+} from "react-native";
 import { useRouter, Stack, useLocalSearchParams } from "expo-router";
+import BottomSheet from "@gorhom/bottom-sheet";
 import {
   Avatar,
   Button,
@@ -18,11 +32,15 @@ import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { useProfile } from "@/hooks/useProfile";
 import { useVibe } from "@/hooks/useVibe";
 import { useSupabase } from "@/hooks/useSupabase";
+import { useLocation } from "@/hooks/useLocation";
+import { useTravelPlan } from "@/hooks/useTravelPlan";
 import { reverseGeocode } from "@/utils/reverseGeocode";
 import { formatBirthday } from "@/utils";
 import { Profile } from "@/types/profile";
+import { TravelPlan } from "@/types/travelPlan";
 import { VibeDisplay } from "@/components/VibeDisplay";
 import { FriendStatusSection } from "@/components/FriendStatusSection";
+import { CreateSheet } from "@/components/CreateSheet";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -31,6 +49,8 @@ export default function ProfileScreen() {
   const { getProfile } = useProfile();
   const { getTopVibes, isLoaded: vibeIsLoaded } = useVibe();
   const { signOut } = useSupabase();
+  const { updateLocationInDatabase } = useLocation();
+  const { getActiveTravelPlan, cancelTravelPlan } = useTravelPlan();
 
   const [otherUserProfile, setOtherUserProfile] = useState<Profile | null>(
     null
@@ -47,6 +67,18 @@ export default function ProfileScreen() {
   const [totalVibeCount, setTotalVibeCount] = useState(0);
   const [vibesLoading, setVibesLoading] = useState(false);
   const [mutualCount, setMutualCount] = useState(0);
+  const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [activeTravelPlan, setActiveTravelPlan] = useState<TravelPlan | null>(
+    null
+  );
+  const [editingTravelPlan, setEditingTravelPlan] = useState<{
+    id: string;
+    destination: { name: string; latitude: number; longitude: number };
+    start_date: string;
+    duration_days: number;
+    visibility: "friends" | "mutuals" | "public";
+  } | null>(null);
+  const createSheetRef = useRef<BottomSheet>(null);
 
   // Determine which profile to display (memoized)
   const isViewingOwnProfile = useMemo(() => !userId, [userId]);
@@ -139,6 +171,48 @@ export default function ProfileScreen() {
     geocodeLocation();
   }, [geocodeLocation]);
 
+  // Fetch active travel plan for own profile
+  const loadActivePlan = useCallback(async () => {
+    if (!isViewingOwnProfile) return;
+
+    try {
+      const { data } = await getActiveTravelPlan();
+      setActiveTravelPlan(data);
+    } catch (err) {
+      console.error("Error loading travel plan:", err);
+    }
+  }, [isViewingOwnProfile, getActiveTravelPlan]);
+
+  useEffect(() => {
+    loadActivePlan();
+  }, [loadActivePlan]);
+
+  const handleCancelPlan = async () => {
+    if (!activeTravelPlan) return;
+
+    Alert.alert(
+      "Cancel Travel Plan",
+      "This will remove your travel plan and delete the post from feeds.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelTravelPlan(activeTravelPlan.id);
+              setActiveTravelPlan(null);
+              Alert.alert("Success", "Travel plan cancelled");
+            } catch (err) {
+              console.error("Error cancelling plan:", err);
+              Alert.alert("Error", "Failed to cancel travel plan");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleVibePress = () => {
     if (displayProfile?.id) {
       router.push({
@@ -192,9 +266,14 @@ export default function ProfileScreen() {
           showBackButton={true}
           rightComponent={
             isViewingOwnProfile ? (
-              <Pressable onPress={() => router.push("/edit-profile")}>
-                <Icons.edit size={24} color={colors.hex.purple600} />
-              </Pressable>
+              <View className="flex-row items-center gap-2">
+                <Pressable onPress={() => router.push("/edit-profile")}>
+                  <Icons.edit size={24} color={colors.hex.purple600} />
+                </Pressable>
+                <Pressable onPress={() => router.push("/settings")}>
+                  <Icons.settings size={24} color={colors.hex.purple600} />
+                </Pressable>
+              </View>
             ) : undefined
           }
         />
@@ -293,6 +372,36 @@ export default function ProfileScreen() {
               <InfoRow label="Hometown" value={displayProfile.hometown} />
             )}
 
+            {isViewingOwnProfile &&
+              displayProfile.latitude === undefined &&
+              displayProfile.longitude === undefined && (
+                <View className="w-full mb-4 px-4 py-3 bg-yellow-50 rounded-lg">
+                  <Text className="text-sm text-gray-700 mb-2">
+                    Current location not set
+                  </Text>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={async () => {
+                      setUpdatingLocation(true);
+                      try {
+                        // Force update location in database
+                        // This will also update the profile store automatically
+                        await updateLocationInDatabase(true);
+                      } catch (err) {
+                        console.error("Error updating location:", err);
+                        setError("Failed to update location");
+                      } finally {
+                        setUpdatingLocation(false);
+                      }
+                    }}
+                    disabled={updatingLocation}
+                  >
+                    {updatingLocation ? "Updating..." : "Update Location"}
+                  </Button>
+                </View>
+              )}
+
             {(displayProfile.latitude !== undefined ||
               displayProfile.longitude !== undefined) && (
               <InfoRow
@@ -303,27 +412,67 @@ export default function ProfileScreen() {
             )}
           </View>
 
-          {isViewingOwnProfile && (
-            <View className="w-full">
-              <Button
-                size="md"
-                variant="secondary"
-                onPress={() => {
-                  Linking.openURL("https://app.youform.com/forms/werjra1a");
-                }}
-              >
-                Feedback
-              </Button>
-              <Button
-                size="md"
-                variant="secondary"
-                onPress={async () => {
-                  await signOut();
-                  router.replace("/welcome");
-                }}
-              >
-                Sign Out
-              </Button>
+          {/* Travel Plan Section - creation removed, now done from main feed */}
+
+          {isViewingOwnProfile && activeTravelPlan && (
+            <View className="w-full mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <Text className="text-lg font-bold text-gray-900 mb-2">
+                Active Travel Plan
+              </Text>
+              <View className="mb-3">
+                <Text className="text-base text-gray-900 mb-1">
+                  🚀 {activeTravelPlan.destination_name}
+                </Text>
+                <Text className="text-sm text-gray-600">
+                  {new Date(activeTravelPlan.start_date).toLocaleDateString()} →{" "}
+                  {new Date(activeTravelPlan.end_date).toLocaleDateString()}
+                </Text>
+                <Text className="text-sm text-gray-600">
+                  {activeTravelPlan.duration_days}{" "}
+                  {activeTravelPlan.duration_days === 1 ? "day" : "days"}
+                </Text>
+              </View>
+              <View className="flex-row gap-2">
+                <View className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
+                      setEditingTravelPlan({
+                        id: activeTravelPlan.id,
+                        destination: {
+                          name: activeTravelPlan.destination_name,
+                          longitude: parseFloat(
+                            activeTravelPlan.destination_location.match(
+                              /POINT\(([^ ]+) ([^ ]+)\)/
+                            )?.[1] || "0"
+                          ),
+                          latitude: parseFloat(
+                            activeTravelPlan.destination_location.match(
+                              /POINT\(([^ ]+) ([^ ]+)\)/
+                            )?.[2] || "0"
+                          ),
+                        },
+                        start_date: activeTravelPlan.start_date,
+                        duration_days: activeTravelPlan.duration_days,
+                        visibility: "friends", // Default, as post visibility not stored in travel_plans table
+                      });
+                      createSheetRef.current?.snapToIndex(0);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                </View>
+                <View className="flex-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={handleCancelPlan}
+                  >
+                    Cancel Plan
+                  </Button>
+                </View>
+              </View>
             </View>
           )}
         </ScrollView>

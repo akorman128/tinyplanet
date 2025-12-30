@@ -28,3 +28,8 @@ export { SocialMediaLinks } from "./SocialMediaLinks";
 export type { SocialMediaLinksProps } from "./SocialMediaLinks";
 export { ChatInput } from "./ChatInput";
 export { TypingIndicator } from "./TypingIndicator";
+export { OptionSelector } from "./OptionSelector";
+export type {
+  OptionSelectorProps,
+  OptionSelectorOption,
+} from "./OptionSelector";

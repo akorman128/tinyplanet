@@ -104,7 +104,7 @@ export const VibeDisplay: React.FC<VibeDisplayProps> = ({
                 )}
               </View>
             ))}
-            {!hasUserGivenVibe && recipientId !== profile.id && (
+            {!hasUserGivenVibe && recipientId && recipientId !== profile.id && (
               <Pressable
                 onPress={handleAddVibe}
                 className="w-8 h-8 rounded-full border-2 justify-center items-center"

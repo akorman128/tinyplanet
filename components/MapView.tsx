@@ -20,7 +20,9 @@ import Mapbox, {
   LineLayer,
 } from "@rnmapbox/maps";
 import { useFriends } from "@/hooks/useFriends";
+import { useTravelPlan } from "@/hooks/useTravelPlan";
 import { GeoJSONFeatureCollection, ConnectionLine } from "@/types/friendship";
+import { TravelPlanMapLocation } from "@/types/travelPlan";
 import { useLocation } from "@/hooks/useLocation";
 import { colors, MapLegend } from "@/design-system";
 import { useRouter } from "expo-router";
@@ -33,6 +35,7 @@ interface MapViewProps {
 export const MapView: React.FC<MapViewProps> = React.memo(
   ({ onRefresh, refreshing = false }) => {
     const { getFriendLocations } = useFriends();
+    const { getTravelPlanLocations } = useTravelPlan();
     const {
       location: userLocationObj,
       getCurrentLocation,
@@ -42,6 +45,9 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
     const [friendLocations, setFriendLocations] =
       useState<GeoJSONFeatureCollection | null>(null);
+    const [travelPlanLocations, setTravelPlanLocations] = useState<
+      TravelPlanMapLocation[]
+    >([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -130,7 +136,34 @@ export const MapView: React.FC<MapViewProps> = React.memo(
       };
     }, [connectionLines.friendToMutualLines, showConnectionLines]);
 
-    // Load friend locations with smart caching
+    // Convert travel plans to GeoJSON for rocket markers
+    const travelPlanGeoJSON = useMemo(() => {
+      if (!travelPlanLocations || travelPlanLocations.length === 0) {
+        return null;
+      }
+
+      return {
+        type: "FeatureCollection" as const,
+        features: travelPlanLocations.map((tp) => ({
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [tp.longitude, tp.latitude] as [number, number],
+          },
+          properties: {
+            id: tp.id,
+            user_id: tp.user_id,
+            name: tp.full_name,
+            destination_name: tp.destination_name,
+            start_date: tp.start_date,
+            end_date: tp.end_date,
+            type: tp.type,
+          },
+        })),
+      };
+    }, [travelPlanLocations]);
+
+    // Load friend locations and travel plans with smart caching
     const loadFriendLocations = useCallback(
       async (forceRefresh: boolean = false) => {
         try {
@@ -142,16 +175,26 @@ export const MapView: React.FC<MapViewProps> = React.memo(
           // Update user's location in the database (applies distance threshold internally)
           await updateLocationInDatabase(forceRefresh);
 
-          // Fetch friend and mutual locations
-          const locations = await getFriendLocations();
+          // Fetch friend/mutual locations and travel plans in parallel
+          const [locations, travelPlans] = await Promise.all([
+            getFriendLocations(),
+            getTravelPlanLocations(),
+          ]);
+
           setFriendLocations(locations);
+          setTravelPlanLocations(travelPlans.data);
         } catch (err) {
           console.error("Error loading friend locations:", err);
           const errorMessage = err instanceof Error ? err.message : String(err);
           setError(errorMessage);
         }
       },
-      [getFriendLocations, updateLocationInDatabase, getCurrentLocation]
+      [
+        getFriendLocations,
+        getTravelPlanLocations,
+        updateLocationInDatabase,
+        getCurrentLocation,
+      ]
     );
 
     // Initial load - only run once on mount
@@ -448,6 +491,57 @@ export const MapView: React.FC<MapViewProps> = React.memo(
                       textHaloColor: colors.hex.white,
                       textHaloWidth: 2,
                       textOffset: [0, 1.5],
+                      textAnchor: "top",
+                      textFont: [
+                        "Roboto Medium",
+                        "Noto Sans Regular",
+                        "Arial Unicode MS Regular",
+                      ],
+                    }}
+                  />
+                </ShapeSource>
+              )}
+
+              {/* Travel plan destination markers with rocket emoji */}
+              {travelPlanGeoJSON && travelPlanGeoJSON.features.length > 0 && (
+                <ShapeSource
+                  id="travel-plan-destinations"
+                  shape={travelPlanGeoJSON}
+                  onPress={handleMarkerPress}
+                >
+                  {/* Circle background for rocket */}
+                  <CircleLayer
+                    id="travel-plan-marker-circles"
+                    style={{
+                      circleRadius: 16,
+                      circleColor: "#ff9500", // Orange color for travel
+                      circleOpacity: 0.9,
+                      circleStrokeWidth: 3,
+                      circleStrokeColor: colors.hex.white,
+                    }}
+                  />
+
+                  {/* Rocket emoji as text symbol */}
+                  <SymbolLayer
+                    id="travel-plan-markers"
+                    style={{
+                      textField: "🚀",
+                      textSize: 20,
+                      textAllowOverlap: true,
+                      textIgnorePlacement: true,
+                    }}
+                  />
+
+                  {/* Destination name labels */}
+                  <SymbolLayer
+                    id="travel-plan-labels"
+                    style={{
+                      textField: ["get", "destination_name"],
+                      textSize: 12,
+                      textColor: "#ff9500",
+                      textHaloColor: colors.hex.white,
+                      textHaloWidth: 2,
+                      textOffset: [0, 2],
                       textAnchor: "top",
                       textFont: [
                         "Roboto Medium",

@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { View, FlatList, RefreshControl, Text } from "react-native";
 import { PostCard } from "@/components/PostCard";
+import { TravelPlanCard } from "@/components/TravelPlanCard";
 import { useFeed } from "@/hooks/useFeed";
 import { useSavedPosts } from "@/hooks/useSavedPosts";
 import { useRequireProfile } from "@/hooks/useRequireProfile";
 import { PostWithAuthor } from "@/types/post";
 import { colors, TabBar } from "@/design-system";
+
+// Helper function to detect travel plan posts
+const isTravelPlanPost = (post: PostWithAuthor): boolean => {
+  return post.text.startsWith("🚀 Traveling to");
+};
 
 const POSTS_PER_PAGE = 10;
 
@@ -195,15 +201,25 @@ export function UserPostsSection({
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            onLike={handleLike}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            onOpenComments={handleOpenCommentsInternal}
-          />
-        )}
+        renderItem={({ item }) =>
+          isTravelPlanPost(item) ? (
+            <TravelPlanCard
+              post={item}
+              onLike={handleLike}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              onOpenComments={handleOpenCommentsInternal}
+            />
+          ) : (
+            <PostCard
+              post={item}
+              onLike={handleLike}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              onOpenComments={handleOpenCommentsInternal}
+            />
+          )
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

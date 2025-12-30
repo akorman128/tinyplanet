@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { MapView } from "@/components/MapView";
 import { FeedView } from "@/components/FeedView";
-import { CreatePostSheet } from "@/components/CreatePostSheet";
+import { CreateSheet } from "@/components/CreateSheet";
 import { Avatar, Icons } from "@/design-system";
 import { ButtonGroup } from "@/design-system/ButtonGroup";
 import { useProfileStore } from "@/stores/profileStore";
@@ -158,9 +158,10 @@ export default function Page() {
           </TouchableOpacity>
         )}
 
-        {/* Create Post Bottom Sheet */}
-        <CreatePostSheet
+        {/* Create Content Bottom Sheet */}
+        <CreateSheet
           ref={createPostSheetRef}
+          initialType="post"
           editPost={editPost}
           onPostCreated={handlePostCreated}
           onPostUpdated={handlePostUpdated}
