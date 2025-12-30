@@ -187,32 +187,6 @@ export default function ProfileScreen() {
     loadActivePlan();
   }, [loadActivePlan]);
 
-  const handleCancelPlan = async () => {
-    if (!activeTravelPlan) return;
-
-    Alert.alert(
-      "Cancel Travel Plan",
-      "This will remove your travel plan and delete the post from feeds.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await cancelTravelPlan(activeTravelPlan.id);
-              setActiveTravelPlan(null);
-              Alert.alert("Success", "Travel plan cancelled");
-            } catch (err) {
-              console.error("Error cancelling plan:", err);
-              Alert.alert("Error", "Failed to cancel travel plan");
-            }
-          },
-        },
-      ]
-    );
-  };
-
   const handleVibePress = () => {
     if (displayProfile?.id) {
       router.push({
@@ -360,6 +334,18 @@ export default function ProfileScreen() {
             </Pressable>
           )}
 
+          {activeTravelPlan && (
+            <View className="w-full mb-4 px-4 py-3 bg-purple-50 rounded-lg flex-col  justify-between">
+              <Text className="text-base font-semibold text-purple-900 mb-1">
+                🚀 {activeTravelPlan.destination_name}
+              </Text>
+              <Text className="text-sm font-semibold text-purple-600">
+                {new Date(activeTravelPlan.start_date).toLocaleDateString()} →{" "}
+                {new Date(activeTravelPlan.end_date).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+
           <View className="w-full mb-4">
             {displayProfile.birthday && (
               <InfoRow
@@ -411,70 +397,6 @@ export default function ProfileScreen() {
               />
             )}
           </View>
-
-          {/* Travel Plan Section - creation removed, now done from main feed */}
-
-          {isViewingOwnProfile && activeTravelPlan && (
-            <View className="w-full mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-              <Text className="text-lg font-bold text-gray-900 mb-2">
-                Active Travel Plan
-              </Text>
-              <View className="mb-3">
-                <Text className="text-base text-gray-900 mb-1">
-                  🚀 {activeTravelPlan.destination_name}
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  {new Date(activeTravelPlan.start_date).toLocaleDateString()} →{" "}
-                  {new Date(activeTravelPlan.end_date).toLocaleDateString()}
-                </Text>
-                <Text className="text-sm text-gray-600">
-                  {activeTravelPlan.duration_days}{" "}
-                  {activeTravelPlan.duration_days === 1 ? "day" : "days"}
-                </Text>
-              </View>
-              <View className="flex-row gap-2">
-                <View className="flex-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onPress={() => {
-                      setEditingTravelPlan({
-                        id: activeTravelPlan.id,
-                        destination: {
-                          name: activeTravelPlan.destination_name,
-                          longitude: parseFloat(
-                            activeTravelPlan.destination_location.match(
-                              /POINT\(([^ ]+) ([^ ]+)\)/
-                            )?.[1] || "0"
-                          ),
-                          latitude: parseFloat(
-                            activeTravelPlan.destination_location.match(
-                              /POINT\(([^ ]+) ([^ ]+)\)/
-                            )?.[2] || "0"
-                          ),
-                        },
-                        start_date: activeTravelPlan.start_date,
-                        duration_days: activeTravelPlan.duration_days,
-                        visibility: "friends", // Default, as post visibility not stored in travel_plans table
-                      });
-                      createSheetRef.current?.snapToIndex(0);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                </View>
-                <View className="flex-1">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onPress={handleCancelPlan}
-                  >
-                    Cancel Plan
-                  </Button>
-                </View>
-              </View>
-            </View>
-          )}
         </ScrollView>
       </View>
     </>

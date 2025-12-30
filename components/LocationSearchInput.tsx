@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TextInput, Pressable, FlatList } from "react-native";
+import { View, Text, TextInput, Pressable, ScrollView } from "react-native";
 import { colors } from "@/design-system";
 
 const MAPBOX_ACCESS_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -17,6 +17,7 @@ export interface LocationSearchValue {
 }
 
 interface LocationSearchInputProps {
+  label?: string;
   value?: LocationSearchValue | null;
   onChange: (value: LocationSearchValue | null) => void;
   error?: string;
@@ -24,6 +25,7 @@ interface LocationSearchInputProps {
 }
 
 export function LocationSearchInput({
+  label,
   value,
   onChange,
   error,
@@ -125,9 +127,7 @@ export function LocationSearchInput({
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-gray-700 mb-2">
-        Destination
-      </Text>
+      <Text className="text-sm font-medium text-gray-700 mb-2">{label}</Text>
 
       <View className="relative">
         <TextInput
@@ -151,11 +151,14 @@ export function LocationSearchInput({
         {/* Dropdown results */}
         {showDropdown && results.length > 0 && (
           <View className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
-            <FlatList
-              data={results}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
+            <ScrollView
+              style={{ maxHeight: 200 }}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
+            >
+              {results.map((item) => (
                 <Pressable
+                  key={item.id}
                   className="px-4 py-3 border-b border-gray-100"
                   onPress={() => handleSelectLocation(item)}
                 >
@@ -163,22 +166,13 @@ export function LocationSearchInput({
                     {item.place_name}
                   </Text>
                 </Pressable>
-              )}
-              scrollEnabled={true}
-              nestedScrollEnabled={true}
-              style={{ maxHeight: 200 }}
-            />
+              ))}
+            </ScrollView>
           </View>
         )}
       </View>
 
       {error && <Text className="text-red-500 text-sm mt-1">{error}</Text>}
-
-      {value && (
-        <Text className="text-xs text-gray-500 mt-1">
-          📍 {value.latitude.toFixed(4)}, {value.longitude.toFixed(4)}
-        </Text>
-      )}
     </View>
   );
 }

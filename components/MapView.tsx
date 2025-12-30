@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Text,
   LayoutChangeEvent,
+  Image,
 } from "react-native";
 import Mapbox, {
   Camera,
@@ -18,6 +19,7 @@ import Mapbox, {
   CircleLayer,
   SymbolLayer,
   LineLayer,
+  Images,
 } from "@rnmapbox/maps";
 import { useFriends } from "@/hooks/useFriends";
 import { useTravelPlan } from "@/hooks/useTravelPlan";
@@ -234,12 +236,14 @@ export const MapView: React.FC<MapViewProps> = React.memo(
         const { features } = event;
         if (features && features.length > 0) {
           const feature = features[0];
-          const userId = feature.properties.id;
 
           // Don't do anything if a cluster is tapped
           if (feature.properties.point_count) {
             return;
           }
+
+          // For travel plan markers, use user_id; for friend/mutual markers, use id
+          const userId = feature.properties.user_id || feature.properties.id;
 
           // Navigate to the user's profile page
           router.push({ pathname: "/profile", params: { userId } });
@@ -266,299 +270,286 @@ export const MapView: React.FC<MapViewProps> = React.memo(
 
     return (
       <View className="flex-1" onLayout={handleLayout}>
-          {mapDimensions.width > 0 && mapDimensions.height > 0 && (
-            <Mapbox.MapView
-              style={styles.map}
-              // styleURL="mapbox://styles/mapbox/navigation-day-v1"
-              // styleURL={Mapbox.StyleURL.Street}
-              styleURL={Mapbox.StyleURL.Dark}
-              compassViewPosition={3}
-              scaleBarEnabled={false}
-            >
-              <Camera
-                zoomLevel={12}
-                centerCoordinate={userLocation || [0, 0]}
-                animationDuration={1000}
-                animationMode="flyTo"
-              />
+        {mapDimensions.width > 0 && mapDimensions.height > 0 && (
+          <Mapbox.MapView
+            style={styles.map}
+            // styleURL="mapbox://styles/mapbox/navigation-day-v1"
+            // styleURL={Mapbox.StyleURL.Street}
+            styleURL={Mapbox.StyleURL.Dark}
+            compassViewPosition={3}
+            scaleBarEnabled={false}
+          >
+            <Camera
+              zoomLevel={12}
+              centerCoordinate={userLocation || [0, 0]}
+              animationDuration={1000}
+              animationMode="flyTo"
+            />
 
-              {/* User location marker */}
-              {userLocation && (
-                <ShapeSource
-                  id="user-location"
-                  shape={{
-                    type: "Feature",
-                    geometry: {
-                      type: "Point",
-                      coordinates: userLocation,
-                    },
-                    properties: {
-                      name: "You",
-                    },
+            {/* Register custom images */}
+            <Images
+              images={{
+                rocketIcon: require("../assets/rocket.png"),
+              }}
+            />
+
+            {/* User location marker */}
+            {userLocation && (
+              <ShapeSource
+                id="user-location"
+                shape={{
+                  type: "Feature",
+                  geometry: {
+                    type: "Point",
+                    coordinates: userLocation,
+                  },
+                  properties: {
+                    name: "You",
+                  },
+                }}
+              >
+                <CircleLayer
+                  id="user-marker"
+                  style={{
+                    circleRadius: 10,
+                    circleColor: "#53d769",
+                    circleOpacity: 0.85,
+                    circleStrokeWidth: 3,
+                    circleStrokeColor: colors.hex.white,
                   }}
-                >
-                  <CircleLayer
-                    id="user-marker"
-                    style={{
-                      circleRadius: 10,
-                      circleColor: "#53d769",
-                      circleOpacity: 0.85,
-                      circleStrokeWidth: 3,
-                      circleStrokeColor: colors.hex.white,
-                    }}
-                  />
-                  {/* Center dot for user marker */}
-                  <CircleLayer
-                    id="user-marker-center"
-                    style={{
-                      circleRadius: 3,
-                      circleColor: colors.hex.white,
-                    }}
-                  />
-                  {/* User location label */}
-                  <SymbolLayer
-                    id="user-label"
-                    style={{
-                      textField: ["get", "name"],
-                      textSize: 12,
-                      textColor: "#53d769",
-                      textHaloColor: colors.hex.white,
-                      textHaloWidth: 2,
-                      textOffset: [0, 1.5],
-                      textAnchor: "top",
-                      textFont: [
-                        "Roboto Medium",
-                        "Noto Sans Regular",
-                        "Arial Unicode MS Regular",
-                      ],
-                    }}
-                  />
-                </ShapeSource>
-              )}
+                />
+                {/* Center dot for user marker */}
+                <CircleLayer
+                  id="user-marker-center"
+                  style={{
+                    circleRadius: 3,
+                    circleColor: colors.hex.white,
+                  }}
+                />
+                {/* User location label */}
+                <SymbolLayer
+                  id="user-label"
+                  style={{
+                    textField: ["get", "name"],
+                    textSize: 12,
+                    textColor: "#53d769",
+                    textHaloColor: colors.hex.white,
+                    textHaloWidth: 2,
+                    textOffset: [0, 1.5],
+                    textAnchor: "top",
+                    textFont: [
+                      "Roboto Medium",
+                      "Noto Sans Regular",
+                      "Arial Unicode MS Regular",
+                    ],
+                  }}
+                />
+              </ShapeSource>
+            )}
 
-              {/* Connection lines: User → Friends */}
-              {userToFriendLinesGeoJSON &&
-                userToFriendLinesGeoJSON.features.length > 0 && (
-                  <ShapeSource
-                    id="user-to-friend-lines"
-                    shape={userToFriendLinesGeoJSON}
-                  >
-                    <LineLayer
-                      id="user-to-friend-line-layer"
-                      style={{
-                        lineColor: colors.hex.purple600,
-                        lineWidth: 2,
-                        lineOpacity: 0.6,
-                      }}
-                    />
-                  </ShapeSource>
-                )}
-
-              {/* Connection lines: Friends → Mutuals */}
-              {friendToMutualLinesGeoJSON &&
-                friendToMutualLinesGeoJSON.features.length > 0 && (
-                  <ShapeSource
-                    id="friend-to-mutual-lines"
-                    shape={friendToMutualLinesGeoJSON}
-                  >
-                    <LineLayer
-                      id="friend-to-mutual-line-layer"
-                      style={{
-                        lineColor: colors.hex.purple200,
-                        lineWidth: 2,
-                        lineOpacity: 0.6,
-                        lineDasharray: [2, 2],
-                      }}
-                    />
-                  </ShapeSource>
-                )}
-
-              {/* Friend and mutual markers with clustering */}
-              {friendLocations && friendLocations.features.length > 0 && (
+            {/* Connection lines: User → Friends */}
+            {userToFriendLinesGeoJSON &&
+              userToFriendLinesGeoJSON.features.length > 0 && (
                 <ShapeSource
-                  id="friend-locations"
-                  shape={friendLocations}
-                  cluster
-                  clusterRadius={50}
-                  clusterMaxZoomLevel={14}
-                  onPress={handleMarkerPress}
+                  id="user-to-friend-lines"
+                  shape={userToFriendLinesGeoJSON}
                 >
-                  {/* Clustered points */}
-                  <CircleLayer
-                    id="cluster-circles"
-                    filter={["has", "point_count"]}
+                  <LineLayer
+                    id="user-to-friend-line-layer"
                     style={{
-                      circleRadius: [
-                        "step",
-                        ["get", "point_count"],
-                        20, // radius for clusters with < 10 points
-                        10,
-                        20, // radius for clusters with 10-100 points
-                        100,
-                        20, // radius for clusters with > 100 points
-                      ],
-                      circleColor: colors.hex.purple600,
-                      circleOpacity: 0.9,
-                      circleStrokeWidth: 3,
-                      circleStrokeColor: colors.hex.white,
-                    }}
-                  />
-                  <SymbolLayer
-                    id="cluster-count"
-                    filter={["has", "point_count"]}
-                    style={{
-                      textField: ["get", "point_count_abbreviated"],
-                      textSize: 14,
-                      textColor: colors.hex.white,
-                      textFont: [
-                        "Roboto Bold",
-                        "Noto Sans Bold",
-                        "Arial Unicode MS Bold",
-                      ],
-                    }}
-                  />
-
-                  {/* Individual friend markers */}
-                  <CircleLayer
-                    id="friend-markers"
-                    filter={[
-                      "all",
-                      ["!has", "point_count"],
-                      ["==", "type", "friend"],
-                    ]}
-                    style={{
-                      circleRadius: 10,
-                      circleColor: colors.hex.purple600,
-                      circleOpacity: 0.85,
-                      circleStrokeWidth: 3,
-                      circleStrokeColor: colors.hex.white,
-                    }}
-                  />
-
-                  {/* Individual mutual markers */}
-                  <CircleLayer
-                    id="mutual-markers"
-                    filter={[
-                      "all",
-                      ["!has", "point_count"],
-                      ["==", "type", "mutual"],
-                    ]}
-                    style={{
-                      circleRadius: 10,
-                      circleColor: colors.hex.purple200,
-                      circleOpacity: 0.85,
-                      circleStrokeWidth: 3,
-                      circleStrokeColor: colors.hex.white,
-                    }}
-                  />
-
-                  {/* Friend name labels */}
-                  <SymbolLayer
-                    id="friend-labels"
-                    filter={[
-                      "all",
-                      ["!has", "point_count"],
-                      ["==", "type", "friend"],
-                    ]}
-                    style={{
-                      textField: ["get", "name"],
-                      textSize: 12,
-                      textColor: colors.hex.purple900,
-                      textHaloColor: colors.hex.white,
-                      textHaloWidth: 2,
-                      textOffset: [0, 1.5],
-                      textAnchor: "top",
-                      textFont: [
-                        "Roboto Medium",
-                        "Noto Sans Regular",
-                        "Arial Unicode MS Regular",
-                      ],
-                    }}
-                  />
-
-                  {/* Mutual name labels */}
-                  <SymbolLayer
-                    id="mutual-labels"
-                    filter={[
-                      "all",
-                      ["!has", "point_count"],
-                      ["==", "type", "mutual"],
-                    ]}
-                    style={{
-                      textField: ["get", "name"],
-                      textSize: 12,
-                      textColor: colors.hex.purple800,
-                      textHaloColor: colors.hex.white,
-                      textHaloWidth: 2,
-                      textOffset: [0, 1.5],
-                      textAnchor: "top",
-                      textFont: [
-                        "Roboto Medium",
-                        "Noto Sans Regular",
-                        "Arial Unicode MS Regular",
-                      ],
+                      lineColor: colors.hex.purple600,
+                      lineWidth: 2,
+                      lineOpacity: 0.6,
                     }}
                   />
                 </ShapeSource>
               )}
 
-              {/* Travel plan destination markers with rocket emoji */}
-              {travelPlanGeoJSON && travelPlanGeoJSON.features.length > 0 && (
+            {/* Connection lines: Friends → Mutuals */}
+            {friendToMutualLinesGeoJSON &&
+              friendToMutualLinesGeoJSON.features.length > 0 && (
                 <ShapeSource
-                  id="travel-plan-destinations"
-                  shape={travelPlanGeoJSON}
-                  onPress={handleMarkerPress}
+                  id="friend-to-mutual-lines"
+                  shape={friendToMutualLinesGeoJSON}
                 >
-                  {/* Circle background for rocket */}
-                  <CircleLayer
-                    id="travel-plan-marker-circles"
+                  <LineLayer
+                    id="friend-to-mutual-line-layer"
                     style={{
-                      circleRadius: 16,
-                      circleColor: "#ff9500", // Orange color for travel
-                      circleOpacity: 0.9,
-                      circleStrokeWidth: 3,
-                      circleStrokeColor: colors.hex.white,
-                    }}
-                  />
-
-                  {/* Rocket emoji as text symbol */}
-                  <SymbolLayer
-                    id="travel-plan-markers"
-                    style={{
-                      textField: "🚀",
-                      textSize: 20,
-                      textAllowOverlap: true,
-                      textIgnorePlacement: true,
-                    }}
-                  />
-
-                  {/* Destination name labels */}
-                  <SymbolLayer
-                    id="travel-plan-labels"
-                    style={{
-                      textField: ["get", "destination_name"],
-                      textSize: 12,
-                      textColor: "#ff9500",
-                      textHaloColor: colors.hex.white,
-                      textHaloWidth: 2,
-                      textOffset: [0, 2],
-                      textAnchor: "top",
-                      textFont: [
-                        "Roboto Medium",
-                        "Noto Sans Regular",
-                        "Arial Unicode MS Regular",
-                      ],
+                      lineColor: colors.hex.purple200,
+                      lineWidth: 2,
+                      lineOpacity: 0.6,
+                      lineDasharray: [2, 2],
                     }}
                   />
                 </ShapeSource>
               )}
-            </Mapbox.MapView>
-          )}
 
-          <MapLegend
-            showLines={showConnectionLines}
-            onToggleLines={setShowConnectionLines}
-          />
+            {/* Friend and mutual markers with clustering */}
+            {friendLocations && friendLocations.features.length > 0 && (
+              <ShapeSource
+                id="friend-locations"
+                shape={friendLocations}
+                cluster
+                clusterRadius={50}
+                clusterMaxZoomLevel={14}
+                onPress={handleMarkerPress}
+              >
+                {/* Clustered points */}
+                <CircleLayer
+                  id="cluster-circles"
+                  filter={["has", "point_count"]}
+                  style={{
+                    circleRadius: [
+                      "step",
+                      ["get", "point_count"],
+                      20, // radius for clusters with < 10 points
+                      10,
+                      20, // radius for clusters with 10-100 points
+                      100,
+                      20, // radius for clusters with > 100 points
+                    ],
+                    circleColor: colors.hex.purple600,
+                    circleOpacity: 0.9,
+                    circleStrokeWidth: 3,
+                    circleStrokeColor: colors.hex.white,
+                  }}
+                />
+                <SymbolLayer
+                  id="cluster-count"
+                  filter={["has", "point_count"]}
+                  style={{
+                    textField: ["get", "point_count_abbreviated"],
+                    textSize: 14,
+                    textColor: colors.hex.white,
+                    textFont: [
+                      "Roboto Bold",
+                      "Noto Sans Bold",
+                      "Arial Unicode MS Bold",
+                    ],
+                  }}
+                />
+
+                {/* Individual friend markers */}
+                <CircleLayer
+                  id="friend-markers"
+                  filter={[
+                    "all",
+                    ["!has", "point_count"],
+                    ["==", "type", "friend"],
+                  ]}
+                  style={{
+                    circleRadius: 10,
+                    circleColor: colors.hex.purple600,
+                    circleOpacity: 0.85,
+                    circleStrokeWidth: 3,
+                    circleStrokeColor: colors.hex.white,
+                  }}
+                />
+
+                {/* Individual mutual markers */}
+                <CircleLayer
+                  id="mutual-markers"
+                  filter={[
+                    "all",
+                    ["!has", "point_count"],
+                    ["==", "type", "mutual"],
+                  ]}
+                  style={{
+                    circleRadius: 10,
+                    circleColor: colors.hex.purple200,
+                    circleOpacity: 0.85,
+                    circleStrokeWidth: 3,
+                    circleStrokeColor: colors.hex.white,
+                  }}
+                />
+
+                {/* Friend name labels */}
+                <SymbolLayer
+                  id="friend-labels"
+                  filter={[
+                    "all",
+                    ["!has", "point_count"],
+                    ["==", "type", "friend"],
+                  ]}
+                  style={{
+                    textField: ["get", "name"],
+                    textSize: 12,
+                    textColor: colors.hex.purple900,
+                    textHaloColor: colors.hex.white,
+                    textHaloWidth: 2,
+                    textOffset: [0, 1.5],
+                    textAnchor: "top",
+                    textFont: [
+                      "Roboto Medium",
+                      "Noto Sans Regular",
+                      "Arial Unicode MS Regular",
+                    ],
+                  }}
+                />
+
+                {/* Mutual name labels */}
+                <SymbolLayer
+                  id="mutual-labels"
+                  filter={[
+                    "all",
+                    ["!has", "point_count"],
+                    ["==", "type", "mutual"],
+                  ]}
+                  style={{
+                    textField: ["get", "name"],
+                    textSize: 12,
+                    textColor: colors.hex.purple800,
+                    textHaloColor: colors.hex.white,
+                    textHaloWidth: 2,
+                    textOffset: [0, 1.5],
+                    textAnchor: "top",
+                    textFont: [
+                      "Roboto Medium",
+                      "Noto Sans Regular",
+                      "Arial Unicode MS Regular",
+                    ],
+                  }}
+                />
+              </ShapeSource>
+            )}
+
+            {/* Travel plan destination markers with rocket icon */}
+            {travelPlanGeoJSON && travelPlanGeoJSON.features.length > 0 && (
+              <ShapeSource
+                id="travel-plan-destinations"
+                shape={travelPlanGeoJSON}
+                onPress={handleMarkerPress}
+              >
+                <CircleLayer
+                  id="travel-plan-marker-circles"
+                  style={{
+                    circleRadius: 16,
+                    circleColor: colors.hex.white,
+                    circleOpacity: 0.9,
+                    circleStrokeWidth: 3,
+                    // circleStrokeColor: colors.hex.white,
+                  }}
+                />
+                {/* Rocket icon symbol */}
+                <SymbolLayer
+                  id="travel-plan-markers"
+                  style={{
+                    iconImage: "rocketIcon",
+                    iconSize: 0.15,
+                    iconAllowOverlap: true,
+                    iconIgnorePlacement: true,
+                    iconOpacity: 1,
+                  }}
+                />
+              </ShapeSource>
+            )}
+          </Mapbox.MapView>
+        )}
+
+        <MapLegend
+          showLines={showConnectionLines}
+          onToggleLines={setShowConnectionLines}
+        />
       </View>
     );
   }

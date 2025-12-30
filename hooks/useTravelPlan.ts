@@ -18,27 +18,25 @@ export const useTravelPlan = () => {
   // ––– QUERIES –––
 
   /**
-   * Get the current user's active travel plan (if any)
-   * Active = start_date <= today AND end_date >= today
+   * Get the current user's active or upcoming travel plan (if any)
+   * Active/Upcoming = end_date >= today (not yet finished)
+   * Note: DB only allows one plan per user where end_date >= today
    */
-  const getActiveTravelPlan = useCallback(
-    async (): Promise<GetActiveTravelPlanOutput> => {
+  const getActiveTravelPlan =
+    useCallback(async (): Promise<GetActiveTravelPlanOutput> => {
       const today = new Date().toISOString().split("T")[0];
 
       const { data, error } = await supabase
         .from("travel_plans")
         .select("*")
         .eq("user_id", profile.id)
-        .lte("start_date", today)
         .gte("end_date", today)
         .maybeSingle();
 
       if (error) throw error;
 
       return { data: data as TravelPlan | null };
-    },
-    [supabase, profile.id]
-  );
+    }, [supabase, profile.id]);
 
   /**
    * Get all travel plans for current user (for history view)
@@ -60,8 +58,8 @@ export const useTravelPlan = () => {
   /**
    * Get active travel plan locations for friends/mutuals (for map display)
    */
-  const getTravelPlanLocations = useCallback(
-    async (): Promise<GetTravelPlanLocationsOutput> => {
+  const getTravelPlanLocations =
+    useCallback(async (): Promise<GetTravelPlanLocationsOutput> => {
       const { data, error } = await supabase.rpc(
         "get_active_travel_plan_locations",
         {
@@ -72,9 +70,7 @@ export const useTravelPlan = () => {
       if (error) throw error;
 
       return { data: (data as TravelPlanMapLocation[]) || [] };
-    },
-    [supabase, profile.id]
-  );
+    }, [supabase, profile.id]);
 
   // ––– MUTATIONS –––
 

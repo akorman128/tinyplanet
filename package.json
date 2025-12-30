@@ -6,10 +6,10 @@
   "scripts": {
     "start": "expo start",
     "start:nocash": "npx expo start --clear --reset-cache",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
-    "ios:nocash": "expo run:ios --clear --reset-cache",
-    "lint": "expo lint . --fix"
+    "android": "npx expo run:android",
+    "ios": "npx expo run:ios",
+    "ios:nocash": "npx expo run:ios --clear --reset-cache",
+    "lint": "npx expo lint . --fix"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.6",
