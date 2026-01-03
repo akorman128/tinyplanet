@@ -527,7 +527,7 @@ export const MapView: React.FC<MapViewProps> = React.memo(
                     circleColor: colors.hex.white,
                     circleOpacity: 0.9,
                     circleStrokeWidth: 3,
-                    // circleStrokeColor: colors.hex.white,
+                    circleStrokeColor: colors.hex.white,
                   }}
                 />
                 {/* Rocket icon symbol */}

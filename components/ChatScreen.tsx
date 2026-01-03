@@ -13,6 +13,7 @@ import { MessageBubble } from "@/components";
 import { useChat } from "@/hooks/useChat";
 import { useProfile } from "@/hooks/useProfile";
 import { useSupabase } from "@/hooks/useSupabase";
+import { useMessageChannels } from "@/hooks/useMessageChannels";
 import { MessageWithSender } from "@/types/chat";
 
 const PAGE_SIZE = 10;
@@ -21,6 +22,7 @@ export default function ChatScreen() {
   const { friendId } = useLocalSearchParams<{ friendId: string }>();
   const { session } = useSupabase();
   const { getProfile } = useProfile();
+  const { markChannelAsRead } = useMessageChannels();
   const {
     isLoaded,
     getMessages,
@@ -113,6 +115,16 @@ export default function ChatScreen() {
       }
     };
     fetchFriendProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [friendId]);
+
+  // Mark channel as read when opening chat
+  useEffect(() => {
+    if (friendId) {
+      markChannelAsRead({ friendId }).catch((err) => {
+        console.error("Error marking channel as read:", err);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friendId]);
 

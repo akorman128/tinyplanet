@@ -15,6 +15,7 @@
 | `search_friends` | `20251223000001_add_search_friends_rpc.sql` | `hooks/useFriends.ts` | Server-side friend search using case-insensitive ILIKE pattern matching |
 | `get_top_vibes` | `20251223000002_add_get_top_vibes_rpc.sql` | `hooks/useVibe.ts` | Returns N most frequently used emojis in vibes received by a user |
 | `get_mutual_friends_between_users` | `20251202000001_add_get_mutual_friends_rpc.sql` | `hooks/useFriends.ts` | Returns complete profile data for all mutual friends between two users |
+| `get_message_channels` | `20260103000002_add_message_channels_rpc.sql` | `hooks/useMessageChannels.ts` | Returns all accepted friends with last message preview, timestamp, and server-side calculated unread counts |
 
 ## Deprecated/Unused RPCs
 

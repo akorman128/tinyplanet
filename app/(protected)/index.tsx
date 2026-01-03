@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { MapView } from "@/components/MapView";
 import { FeedView } from "@/components/FeedView";
+import { MessagesView } from "@/components/MessagesView";
 import { CreateSheet } from "@/components/CreateSheet";
 import { Avatar, Icons } from "@/design-system";
 import { ButtonGroup } from "@/design-system/ButtonGroup";
@@ -13,7 +14,7 @@ import { useProfileStore } from "@/stores/profileStore";
 import { colors } from "@/design-system/colors";
 import { PostVisibility } from "@/types/post";
 
-type ViewMode = "map" | "feed";
+type ViewMode = "map" | "feed" | "messages";
 
 interface EditPost {
   id: string;
@@ -73,15 +74,17 @@ export default function Page() {
   return (
     <GestureHandlerRootView className="flex-1">
       <View className="flex-1">
-        {/* Map or Feed View */}
+        {/* Map, Feed, or Messages View */}
         {activeView === "map" ? (
           <MapView onRefresh={onRefreshComplete} refreshing={refreshing} />
-        ) : (
+        ) : activeView === "feed" ? (
           <FeedView
             key={refreshing ? "refreshing" : "idle"}
             onCommentsSheetChange={setIsCommentsSheetOpen}
             onEditPost={handleEditPost}
           />
+        ) : (
+          <MessagesView />
         )}
 
         {/* Toggle Buttons (Centered Top) */}
@@ -90,7 +93,9 @@ export default function Page() {
           style={{ top: insets.top + 20 }}
         >
           <ButtonGroup
-            activeIndex={activeView === "map" ? 0 : 1}
+            activeIndex={
+              activeView === "map" ? 0 : activeView === "feed" ? 1 : 2
+            }
             options={[
               {
                 icon: Icons.globe,
@@ -99,6 +104,10 @@ export default function Page() {
               {
                 icon: Icons.posts,
                 onPress: () => setActiveView("feed"),
+              },
+              {
+                icon: Icons.messageOutline,
+                onPress: () => setActiveView("messages"),
               },
             ]}
           />
@@ -142,21 +151,23 @@ export default function Page() {
         </TouchableOpacity>
 
         {/* Floating + Button (Feed Only) */}
-        {activeView === "feed" && !isCreatePostSheetOpen && !isCommentsSheetOpen && (
-          <TouchableOpacity
-            className="absolute bottom-8 right-5 w-14 h-14 rounded-full bg-purple-600 justify-center items-center z-10"
-            style={{
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 5,
-            }}
-            onPress={() => createPostSheetRef.current?.snapToIndex(0)}
-          >
-            <Icons.plus size={28} color="white" />
-          </TouchableOpacity>
-        )}
+        {activeView === "feed" &&
+          !isCreatePostSheetOpen &&
+          !isCommentsSheetOpen && (
+            <TouchableOpacity
+              className="absolute bottom-8 right-5 w-14 h-14 rounded-full bg-purple-600 justify-center items-center z-10"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 4,
+                elevation: 5,
+              }}
+              onPress={() => createPostSheetRef.current?.snapToIndex(0)}
+            >
+              <Icons.plus size={28} color="white" />
+            </TouchableOpacity>
+          )}
 
         {/* Create Content Bottom Sheet */}
         <CreateSheet
